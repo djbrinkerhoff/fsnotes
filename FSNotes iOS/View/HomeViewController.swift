@@ -23,7 +23,7 @@ final class HomeViewController: UIHostingController<HomeView> {
         actions.openNote = { note in UIApplication.getVC().openFromHome(note: note) }
         actions.newNote = { project in UIApplication.getVC().createNoteFromHome(in: project) }
         actions.folderSettings = { project in UIApplication.getVC().openFolderSettingsFromHome(project: project) }
-        actions.dailyNote = { UIApplication.getVC().openDailyNote() }
+        actions.dailyNote = { UIApplication.getVC().showDailyNotes() }
         actions.settings = { UIApplication.getVC().openSettings() }
 
         rootView = HomeView(model: model, actions: actions)

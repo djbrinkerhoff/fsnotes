@@ -166,18 +166,39 @@ extension ViewController {
         newButtonAction()
     }
 
-    /// Opens (or creates) today's daily note in the Inbox, Craft style.
-    public func openDailyNote() {
+    /// File name used for the daily note of a given day.
+    public static func dailyNoteFileName(for date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    /// Existing daily note for a day, if any.
+    public func dailyNote(for date: Date) -> Note? {
+        let fileName = Self.dailyNoteFileName(for: date)
+        return storage.getBy(fileName: fileName)
+            ?? storage.noteList.first(where: { $0.fileName == fileName && !$0.isTrash() })
+    }
+
+    /// Pushes the Craft-style daily notes screen.
+    public func showDailyNotes() {
+        guard let nav = UIApplication.getNC() else { return }
+
+        if nav.topViewController is DailyNotesViewController { return }
+
+        nav.pushViewController(DailyNotesViewController(), animated: true)
+    }
+
+    /// Opens (or creates) the daily note for a day in the Inbox, Craft style.
+    public func openDailyNote(for date: Date = Date()) {
         loadViewIfNeeded()
 
         guard let inbox = storage.getDefault() else { return }
 
-        let fileFormatter = DateFormatter()
-        fileFormatter.dateFormat = "yyyy-MM-dd"
-        let fileName = fileFormatter.string(from: Date())
+        let fileName = Self.dailyNoteFileName(for: date)
 
-        if let existing = storage.getBy(fileName: fileName)
-            ?? storage.noteList.first(where: { $0.fileName == fileName && !$0.isTrash() }) {
+        if let existing = dailyNote(for: date) {
             UIApplication.getEVC().load(note: existing)
             return
         }
@@ -185,7 +206,7 @@ extension ViewController {
         let titleFormatter = DateFormatter()
         titleFormatter.dateStyle = .full
         titleFormatter.timeStyle = .none
-        let heading = titleFormatter.string(from: Date())
+        let heading = titleFormatter.string(from: date)
 
         let note = Note(name: fileName, project: inbox)
         note.content = NSMutableAttributedString(string: "# \(heading)\n\n")

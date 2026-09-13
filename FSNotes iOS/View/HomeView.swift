@@ -48,21 +48,31 @@ struct HomeView: View {
 
             if !model.starred.isEmpty {
                 Section {
-                    ForEach(model.starred) { item in
-                        Button {
-                            actions.openNote(item.note)
-                        } label: {
-                            HomeNoteRow(item: item)
+                    if !model.isCollapsed(.starred) {
+                        ForEach(model.starred) { item in
+                            Button {
+                                actions.openNote(item.note)
+                            } label: {
+                                HomeNoteRow(item: item)
+                            }
+                            .buttonStyle(.plain)
                         }
-                        .buttonStyle(.plain)
                     }
                 } header: {
-                    HomeSectionHeader(title: NSLocalizedString("Starred", comment: "Home section"))
+                    HomeSectionHeader(
+                        title: NSLocalizedString("Starred", comment: "Home section"),
+                        count: model.starred.count,
+                        isCollapsed: model.isCollapsed(.starred)
+                    ) {
+                        model.toggle(section: .starred)
+                    }
                 }
             }
 
             Section {
-                if model.folders.isEmpty {
+                if model.isCollapsed(.folders) {
+                    EmptyView()
+                } else if model.folders.isEmpty {
                     Text(model.isLoaded
                          ? NSLocalizedString("No folders yet", comment: "Home empty state")
                          : NSLocalizedString("Loading…", comment: "Home loading state"))
@@ -82,6 +92,7 @@ struct HomeView: View {
                             open: { actions.openFolder(folder.project) },
                             toggle: { model.toggle(folder: folder) }
                         )
+                        .id(folder.id)
                         .contextMenu {
                             Button {
                                 actions.newNote(folder.project)
@@ -108,12 +119,18 @@ struct HomeView: View {
                     }
                 }
             } header: {
-                HomeSectionHeader(title: NSLocalizedString("Folders", comment: "Home section"))
+                HomeSectionHeader(
+                    title: NSLocalizedString("Folders", comment: "Home section"),
+                    count: model.folders.filter { $0.depth == 0 }.count,
+                    isCollapsed: model.isCollapsed(.folders)
+                ) {
+                    model.toggle(section: .folders)
+                }
             }
 
             if model.showsTags && !model.tags.isEmpty {
                 Section {
-                    ForEach(model.tags) { tag in
+                    ForEach(model.isCollapsed(.tags) ? [] : model.tags) { tag in
                         HomeOutlineRow(
                             title: tag.name,
                             systemImage: "number",
@@ -126,10 +143,17 @@ struct HomeView: View {
                         )
                     }
                 } header: {
-                    HomeSectionHeader(title: NSLocalizedString("Tags", comment: "Home section"))
+                    HomeSectionHeader(
+                        title: NSLocalizedString("Tags", comment: "Home section"),
+                        count: model.tags.filter { $0.depth == 0 }.count,
+                        isCollapsed: model.isCollapsed(.tags)
+                    ) {
+                        model.toggle(section: .tags)
+                    }
                 }
             }
         }
+        .animation(.snappy, value: model.collapsedSections)
         .listStyle(.plain)
         .listSectionSpacing(.compact)
         .scrollContentBackground(.hidden)
@@ -202,14 +226,42 @@ struct HomeSearchRow: View {
 
 struct HomeSectionHeader: View {
     var title: String
+    var count: Int? = nil
+    var isCollapsed: Bool = false
+    var toggle: (() -> Void)? = nil
 
     var body: some View {
-        Text(title)
-            .font(.headline)
-            .foregroundStyle(.primary)
+        Button {
+            toggle?()
+        } label: {
+            HStack(spacing: 6) {
+                Text(title)
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                if let count, count > 0 {
+                    Text("\(count)")
+                        .font(.subheadline)
+                        .foregroundStyle(.tertiary)
+                }
+                if toggle != nil {
+                    SwiftUI.Image(systemName: "chevron.down")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.tertiary)
+                        .rotationEffect(.degrees(isCollapsed ? -90 : 0))
+                }
+                Spacer(minLength: 0)
+            }
             .textCase(nil)
             .padding(.top, 8)
             .padding(.bottom, 2)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(toggle == nil)
+        .accessibilityLabel(title)
+        .accessibilityHint(toggle == nil ? "" : (isCollapsed
+            ? NSLocalizedString("Expands the section", comment: "Home accessibility")
+            : NSLocalizedString("Collapses the section", comment: "Home accessibility")))
     }
 }
 

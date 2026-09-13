@@ -62,9 +62,8 @@ of scope.
 
 ## Later
 
-- Block-style paragraph handles and an inline "+" between paragraphs on top of
-  the Markdown text storage. Deliberately not started: it touches the custom
-  NSTextStorage/UITextView pipeline that highlighting, todo toggles and
-  attachments depend on, and needs its own design pass.
-- A true multi-column grid on iPhone (the current "Cards" mode is a single
-  column, which matches Craft on phone; iPad could use two columns).
+- A true multi-column grid on iPad (the current "Cards" mode is a single
+  column, which matches Craft on phone).
+- Colored text and highlights from the editor toolbar are out of scope: they
+  have no portable Markdown representation.
+- Inline "+" between paragraphs is intentionally not planned.

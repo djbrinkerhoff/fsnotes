@@ -577,7 +577,7 @@ extension ViewController: UIDocumentPickerDelegate {
             // load navbar
             
             let cancelTitle = NSLocalizedString("Cancel", comment: "")
-            navigationItem.rightBarButtonItem = UIBarButtonItem(title: cancelTitle, style: .plain, target: self, action: #selector(cancel))
+            navigationItem.rightBarButtonItems = [UIBarButtonItem(title: cancelTitle, style: .plain, target: self, action: #selector(cancel))]
 
             // load toolbar
 

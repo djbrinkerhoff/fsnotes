@@ -264,8 +264,22 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
     public func configureNavMenu(for sidebarItem: SidebarItem) {
         lastSidebarItem = sidebarItem
 
-        if let menu = makeSidebarSettingsMenu(for: sidebarItem) {
-            navigationItem.rightBarButtonItem = UIBarButtonItem(systemImageName: "ellipsis.circle", menu: menu)
+        guard let menu = makeSidebarSettingsMenu(for: sidebarItem) else { return }
+
+        let more = UIBarButtonItem(systemImageName: "ellipsis.circle", menu: menu)
+
+        if Self.usesHomeNavigation {
+            // Craft-style: an explicit Select control next to the overflow menu.
+            let select = UIBarButtonItem(
+                title: NSLocalizedString("Select", comment: "Main view popover table"),
+                style: .plain,
+                target: self,
+                action: #selector(bulkEditing)
+            )
+            select.tintColor = .mainTheme
+            navigationItem.rightBarButtonItems = [more, select]
+        } else {
+            navigationItem.rightBarButtonItems = [more]
         }
     }
 

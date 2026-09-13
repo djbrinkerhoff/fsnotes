@@ -69,6 +69,27 @@ final class HomeLibraryModel {
     var showsTags = UserDefaultsManagement.inlineTags
     var isLoaded = false
 
+    enum Section: String, CaseIterable {
+        case starred
+        case folders
+        case tags
+    }
+
+    var collapsedSections = Set(UserDefaultsManagement.collapsedHomeSections.compactMap { Section(rawValue: $0) })
+
+    func isCollapsed(_ section: Section) -> Bool {
+        collapsedSections.contains(section)
+    }
+
+    func toggle(section: Section) {
+        if collapsedSections.contains(section) {
+            collapsedSections.remove(section)
+        } else {
+            collapsedSections.insert(section)
+        }
+        UserDefaultsManagement.collapsedHomeSections = collapsedSections.map(\.rawValue).sorted()
+    }
+
     @ObservationIgnored nonisolated(unsafe) private var observer: NSObjectProtocol?
 
     init() {

@@ -860,6 +860,8 @@
 		CF6D9A0E3AB940C88E568CD6 /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DDB10C58324191920F19C7 /* OverviewView.swift */; };
 		8FC24F527F4C479DB80B4BD2 /* NoteInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */; };
 		923B869EFC1142C1982BCA54 /* NoteInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */; };
+		DC89A59939FF4C40A1BC8C04 /* DailyNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 263EC88B97F346AFA4BE642F /* DailyNotesView.swift */; };
+		4E0CE2FA260A4597B41867AD /* DailyNotesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E1AB859622549AC84D863D7 /* DailyNotesViewController.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1305,6 +1307,8 @@
 		909654706AA4450AA1D2EFC0 /* OverviewHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewHostingView.swift; sourceTree = "<group>"; };
 		69DDB10C58324191920F19C7 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
 		51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteInspectorView.swift; sourceTree = "<group>"; };
+		263EC88B97F346AFA4BE642F /* DailyNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyNotesView.swift; sourceTree = "<group>"; };
+		4E1AB859622549AC84D863D7 /* DailyNotesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyNotesViewController.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1965,6 +1969,8 @@
 		D7ED3FFB20CD0AA3001438EE /* View */ = {
 			isa = PBXGroup;
 			children = (
+				4E1AB859622549AC84D863D7 /* DailyNotesViewController.swift */,
+				263EC88B97F346AFA4BE642F /* DailyNotesView.swift */,
 				F6EF9ED39DDF4D1D96A88311 /* OnboardingView.swift */,
 				E30D79CF39354ED29B06AAA7 /* HomeViewController.swift */,
 				F37671A727B14FC49DA3F819 /* HomeView.swift */,
@@ -2479,6 +2485,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4E0CE2FA260A4597B41867AD /* DailyNotesViewController.swift in Sources */,
+				DC89A59939FF4C40A1BC8C04 /* DailyNotesView.swift in Sources */,
 				CDD7BA2B62DF46219F1D2F1C /* FolderIconPickerViewController.swift in Sources */,
 				43B46EC28B9C415C8727AB9F /* OnboardingView.swift in Sources */,
 				882F7337205E4553A29C1B6B /* NoteListDisplayMode.swift in Sources */,
