@@ -36,4 +36,21 @@ enum SidebarItemType: Int {
         case .Separator: return nil
         }
     }
+
+    /// SF Symbol used by the Craft-style UI on every platform.
+    public var systemImage: String? {
+        switch self {
+        case .Label, .Separator: return nil
+        case .All: return "doc.text"
+        case .Trash: return "trash"
+        case .Todo: return "checklist"
+        case .Inbox: return "tray"
+        case .Tag: return "number"
+        case .Project: return "folder"
+        case .Header: return "icloud"
+        case .Untagged: return "tag.slash"
+        case .ProjectEncryptedLocked: return "lock.fill"
+        case .ProjectEncryptedUnlocked: return "lock.open.fill"
+        }
+    }
 }

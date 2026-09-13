@@ -838,6 +838,7 @@
 		D7FB716C2BE7F66500808E56 /* EditorViewController+QuickLook.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7FB716B2BE7F66500808E56 /* EditorViewController+QuickLook.swift */; };
 		D7FDA4F7236DBC6900C3B4AA /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7FDA4F6236DBC6900C3B4AA /* Sidebar.swift */; };
 		D7FFD09C1FF677ED0064CBA6 /* NotesTextProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F95F391FF2759300E2A447 /* NotesTextProcessor.swift */; };
+		CC2A1A47B0334302AA1A8B52 /* LibraryNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D21219378E147E78241CA8E /* LibraryNotifications.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1270,6 +1271,7 @@
 		D7F95F391FF2759300E2A447 /* NotesTextProcessor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesTextProcessor.swift; sourceTree = "<group>"; };
 		D7FB716B2BE7F66500808E56 /* EditorViewController+QuickLook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorViewController+QuickLook.swift"; sourceTree = "<group>"; };
 		D7FDA4F6236DBC6900C3B4AA /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
+		0D21219378E147E78241CA8E /* LibraryNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryNotifications.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1340,6 +1342,7 @@
 		11598D9F2EDCB85F0036E387 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
+				0D21219378E147E78241CA8E /* LibraryNotifications.swift */,
 				D7CBAFFD214D5A1C002ECD5A /* ShortcutIdentifier.swift */,
 				D78115622153B36C004FA1CA /* Buttons.swift */,
 				D7FDA4F6236DBC6900C3B4AA /* Sidebar.swift */,
@@ -2429,6 +2432,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CC2A1A47B0334302AA1A8B52 /* LibraryNotifications.swift in Sources */,
 				D70E9E012901AEB600A3C634 /* DiffEntry.swift in Sources */,
 				D70E9DF42901AEA800A3C634 /* Commit.swift in Sources */,
 				D70E9E172901AEF300A3C634 /* Tags.swift in Sources */,
