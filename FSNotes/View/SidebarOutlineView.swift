@@ -541,7 +541,7 @@ class SidebarOutlineView: NSOutlineView,
     func outlineView(_ outlineView: NSOutlineView, heightOfRowByItem item: Any) -> CGFloat {
         if let si = item as? SidebarItem {
             if si.type == .Separator {
-                return 28
+                return 36
             }
 
             if si.type == .Header {
@@ -549,7 +549,7 @@ class SidebarOutlineView: NSOutlineView,
             }
         }
 
-        return 28
+        return 30
     }
     
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
@@ -588,7 +588,7 @@ class SidebarOutlineView: NSOutlineView,
         return item
     }
 
-    private static let sidebarSymbolConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+    private static let sidebarSymbolConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
 
     /// Builds a template SF Symbol image sized/weighted for the Craft-style sidebar.
     private func sidebarSymbolImage(named name: String) -> NSImage? {
@@ -620,17 +620,18 @@ class SidebarOutlineView: NSOutlineView,
             headerCell.icon.image = nil
             headerCell.icon.isHidden = true
             headerCell.label.frame.origin.x = 2
-            headerCell.label.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
-            headerCell.label.textColor = .secondaryLabelColor
-            headerCell.label.stringValue = title.uppercased()
+            headerCell.label.font = NSFont.systemFont(ofSize: 12, weight: .semibold)
+            headerCell.label.textColor = .labelColor
+            headerCell.label.stringValue = title
 
             return headerCell
         }
 
         let cell = outlineView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "DataCell"), owner: self) as! SidebarCellView
 
-        cell.icon.contentTintColor = NSColor.controlAccentColor
+        cell.icon.contentTintColor = .secondaryLabelColor
         cell.customTint = nil
+        cell.label.font = NSFont.systemFont(ofSize: 13)
 
         if let tag = item as? FSTag {
             cell.type = .Tag
@@ -682,7 +683,7 @@ class SidebarOutlineView: NSOutlineView,
                 cell.icon.image = nil
             }
 
-            cell.icon.contentTintColor = .controlAccentColor
+            cell.icon.contentTintColor = .secondaryLabelColor
             cell.icon.isHidden = false
             cell.label.frame.origin.x = 25
 

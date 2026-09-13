@@ -79,12 +79,13 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
     public var initialLoadingState = false
     
     override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
         // Craft-style list screens use a large title with the search field under it.
         navigationController?.navigationBar.prefersLargeTitles = Self.usesHomeNavigation
         navigationItem.largeTitleDisplayMode = Self.usesHomeNavigation ? .always : .never
 
-        super.viewWillAppear(animated)
-        navigationItem.searchController = nil
+        configureSearchController()
+        navigationController?.setToolbarHidden(false, animated: animated)
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -122,8 +123,6 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
         }
 
         super.viewDidAppear(animated)
-
-        configureSearchController()
     }
 
     override func viewDidLoad() {
@@ -251,7 +250,12 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
         notesTable.dragInteractionEnabled = true
         notesTable.dragDelegate = notesTable
         notesTable.keyboardDismissMode = .interactive
-        notesTable.contentInsetAdjustmentBehavior = .never
+        notesTable.contentInsetAdjustmentBehavior = Self.usesHomeNavigation ? .automatic : .never
+        if Self.usesHomeNavigation {
+            setContentScrollView(notesTable)
+            notesTable.backgroundColor = .systemGroupedBackground
+            view.backgroundColor = .systemGroupedBackground
+        }
         notesTable.alwaysBounceVertical = true
         notesTable.dataSource = notesTable
         notesTable.delegate = notesTable
@@ -268,7 +272,9 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
 
         guard let menu = makeSidebarSettingsMenu(for: sidebarItem) else { return }
 
-        let more = UIBarButtonItem(systemImageName: "ellipsis.circle", menu: menu)
+        let more = UIBarButtonItem(image: UIImage(systemName: "ellipsis"), menu: menu)
+        more.accessibilityLabel = NSLocalizedString("More", comment: "")
+        more.tintColor = .label
 
         if Self.usesHomeNavigation {
             // Craft-style: an explicit Select control next to the overflow menu.
@@ -278,7 +284,7 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
                 target: self,
                 action: #selector(bulkEditing)
             )
-            select.tintColor = .mainTheme
+            select.tintColor = .label
             navigationItem.rightBarButtonItems = [more, select]
         } else {
             navigationItem.rightBarButtonItems = [more]
@@ -304,7 +310,7 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
         navigationItem.title = folder
         
         if #available(iOS 26.0, *) {
-            navigationItem.subtitle = qty
+            navigationItem.subtitle = Self.usesHomeNavigation ? nil : qty
         }
     }
 
@@ -347,7 +353,7 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
     }
 
     public func configureSearchController() {
-        let text = navigationItem.searchController?.searchBar.text
+        guard navigationItem.searchController == nil else { return }
 
         let searchController = UISearchController(searchResultsController: nil)
         searchController.hidesNavigationBarDuringPresentation = false
@@ -360,20 +366,13 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
             navigationItem.preferredSearchBarPlacement = .stacked
         }
 
-        if #available(iOS 26.0, *) {
-            searchController.searchBar.showsCancelButton = true
-        } else {
-            searchController.searchBar.showsCancelButton = false
-        }
+        searchController.searchBar.showsCancelButton = false
 
         searchController.searchBar.autocapitalizationType = .none
         searchController.searchBar.keyboardAppearance = traitCollection.userInterfaceStyle == .dark ? .dark : .default
 
-        if let text = text {
-            searchController.searchBar.text = text
-        }
-
         navigationItem.searchController = searchController
+        navigationItem.hidesSearchBarWhenScrolling = !Self.usesHomeNavigation
         navigationController?.setToolbarHidden(false, animated: true)
     }
 

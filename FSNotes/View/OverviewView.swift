@@ -119,6 +119,7 @@ struct OverviewView: View {
                 emptyState(text: NSLocalizedString("No notes yet", comment: "Overview empty state"))
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
     }
 
@@ -128,7 +129,7 @@ struct OverviewView: View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(alignment: .firstTextBaseline) {
                 Text(model.folderTitle)
-                    .font(.title2.weight(.semibold))
+                    .font(.system(size: 16, weight: .semibold))
 
                 Spacer()
 
@@ -153,47 +154,34 @@ struct OverviewView: View {
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(24)
     }
 
     /// Craft-style segmented control in the folder header: grid ↔ table,
     /// bound to `ProjectSettings.displayMode` for the selected folder.
     private var displayModeSwitcher: some View {
-        HStack(spacing: 2) {
-            displayModeButton(systemImage: "rectangle.grid.2x2", isSelected: model.displayMode == .cards) {
-                model.onDisplayModeChange?(.cards)
-            }
-            displayModeButton(systemImage: "list.bullet", isSelected: model.displayMode != .cards) {
-                model.onDisplayModeChange?(.list)
-            }
+        Picker(NSLocalizedString("View as", comment: "Overview display mode"), selection: Binding(
+            get: { model.displayMode == .cards ? NoteListDisplayMode.cards : .list },
+            set: { model.onDisplayModeChange?($0) }
+        )) {
+            Label(NSLocalizedString("Cards", comment: "Overview display mode"), systemImage: "rectangle.grid.2x2")
+                .tag(NoteListDisplayMode.cards)
+            Label(NSLocalizedString("List", comment: "Overview display mode"), systemImage: "list.bullet")
+                .tag(NoteListDisplayMode.list)
         }
-        .padding(2)
-        .background(
-            RoundedRectangle(cornerRadius: 7, style: .continuous)
-                .fill(SwiftUI.Color(NSColor.controlBackgroundColor))
-        )
-    }
-
-    private func displayModeButton(systemImage: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            SwiftUI.Image(systemName: systemImage)
-                .font(.system(size: 12, weight: .medium))
-                .frame(width: 24, height: 20)
-                .background(
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(isSelected ? SwiftUI.Color(NSColor.controlAccentColor).opacity(0.18) : SwiftUI.Color.clear)
-                )
-                .foregroundColor(isSelected ? SwiftUI.Color(NSColor.controlAccentColor) : SwiftUI.Color(NSColor.secondaryLabelColor))
-        }
-        .buttonStyle(.plain)
+        .pickerStyle(.segmented)
+        .labelStyle(.iconOnly)
+        .labelsHidden()
+        .fixedSize()
     }
 
     @ViewBuilder
     private func section<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(title.uppercased())
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
+            Text(title)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundColor(SwiftUI.Color(NSColor.labelColor))
             content()
         }
     }
@@ -244,9 +232,10 @@ private struct NoteCard: View {
                     Spacer()
 
                     if item.isPinned {
-                        SwiftUI.Image(systemName: "pin.fill")
+                        SwiftUI.Image(systemName: "star.fill")
                             .font(.system(size: 10))
-                            .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
+                            .foregroundColor(SwiftUI.Color(NSColor.systemYellow))
+                            .accessibilityLabel(NSLocalizedString("Starred", comment: "Note status"))
                     }
                 }
 
@@ -263,7 +252,7 @@ private struct NoteCard: View {
                     .foregroundColor(SwiftUI.Color(NSColor.tertiaryLabelColor))
             }
             .padding(12)
-            .frame(minHeight: 100, maxHeight: 120, alignment: .topLeading)
+            .frame(height: 120, alignment: .topLeading)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(CardBackground(isHovering: isHovering))
         }
@@ -364,13 +353,18 @@ private func overviewRelativeString(for date: Date?) -> String {
 @available(macOS 12, *)
 private struct NoteTableColumnHeader: View {
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 10) {
             Text(NSLocalizedString("Name", comment: "Overview table column"))
                 .frame(maxWidth: .infinity, alignment: .leading)
-            Text(NSLocalizedString("Updated", comment: "Overview table column"))
-                .frame(width: 110, alignment: .trailing)
+            HStack(spacing: 3) {
+                Text(NSLocalizedString("Updated", comment: "Overview table column"))
+                SwiftUI.Image(systemName: "arrow.down")
+                    .accessibilityLabel(NSLocalizedString("Newest first", comment: "Overview sort order"))
+            }
+                .foregroundColor(SwiftUI.Color(NSColor.labelColor))
+                .frame(width: 110, alignment: .leading)
             Text(NSLocalizedString("Created", comment: "Overview table column"))
-                .frame(width: 110, alignment: .trailing)
+                .frame(width: 110, alignment: .leading)
         }
         .font(.system(size: 11))
         .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
@@ -378,7 +372,7 @@ private struct NoteTableColumnHeader: View {
         .padding(.bottom, 6)
         .overlay(alignment: .bottom) {
             Rectangle()
-                .fill(SwiftUI.Color(NSColor.separatorColor))
+                .fill(SwiftUI.Color(NSColor.separatorColor).opacity(0.5))
                 .frame(height: 1)
         }
     }
@@ -396,7 +390,7 @@ private struct NoteTableGroupView: View {
                 .font(.system(size: 12))
                 .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
                 .padding(.top, 14)
-                .padding(.bottom, 4)
+                .padding(.bottom, 8)
                 .padding(.horizontal, 12)
 
             ForEach(group.items) { item in
@@ -437,6 +431,7 @@ private struct NoteTableRow: View {
                             .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
                     )
                     .frame(width: 28, height: 36)
+                    .accessibilityHidden(true)
 
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 4) {
@@ -444,10 +439,11 @@ private struct NoteTableRow: View {
                             SwiftUI.Image(systemName: "star.fill")
                                 .font(.system(size: 10))
                                 .foregroundColor(SwiftUI.Color(NSColor.systemYellow))
+                                .accessibilityLabel(NSLocalizedString("Starred", comment: "Note status"))
                         }
 
                         Text(item.title)
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 13))
                             .lineLimit(1)
                     }
 
@@ -463,18 +459,23 @@ private struct NoteTableRow: View {
                     .font(.system(size: 11))
                     .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
                     .lineLimit(1)
-                    .frame(width: 110, alignment: .trailing)
+                    .frame(width: 110, alignment: .leading)
 
                 Text(overviewRelativeString(for: item.note.creationDate))
                     .font(.system(size: 11))
                     .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
                     .lineLimit(1)
-                    .frame(width: 110, alignment: .trailing)
+                    .frame(width: 110, alignment: .leading)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 6)
+            .padding(.vertical, 10)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(isHovering ? SwiftUI.Color(NSColor.controlAccentColor).opacity(0.08) : SwiftUI.Color.clear)
+            .overlay(alignment: .bottom) {
+                Rectangle()
+                    .fill(SwiftUI.Color(NSColor.separatorColor).opacity(0.5))
+                    .frame(height: 1)
+            }
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)

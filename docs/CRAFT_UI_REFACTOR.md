@@ -88,6 +88,9 @@ Compared every screen of `docs/reference/contact-sheet.png` with the build.
 
 ## Later
 
+See [the September 13 visual audit](CRAFT_UI_AUDIT.md) for presentation fixes,
+runtime verification, and differences intentionally retained in the styling pass.
+
 - Date-grouped sections inside the UIKit notes list (Today / Yesterday / …).
   The table is single-section and its insert, remove and pin code assumes
   that, so it needs its own careful pass.

@@ -65,16 +65,6 @@ struct OnboardingView: View {
                 .padding(16)
             }
 
-            HStack(spacing: 8) {
-                ForEach(pages) { page in
-                    Circle()
-                        .fill(page.id == selection ? AnyShapeStyle(.primary) : AnyShapeStyle(.quaternary))
-                        .frame(width: 7, height: 7)
-                }
-            }
-            .padding(.vertical, 18)
-            .accessibilityHidden(true)
-
             Button {
                 if selection < pages.count - 1 {
                     withAnimation(.snappy) { selection += 1 }
@@ -90,6 +80,8 @@ struct OnboardingView: View {
                     .padding(.vertical, 6)
             }
             .buttonStyle(.borderedProminent)
+            .buttonBorderShape(.capsule)
+            .tint(.blue)
             .controlSize(.large)
             .padding(.horizontal, 24)
             .padding(.bottom, 24)
@@ -103,24 +95,27 @@ struct OnboardingPageView: View {
     var page: OnboardingPage
 
     var body: some View {
-        VStack(spacing: 0) {
+        ScrollView {
+          VStack(spacing: 0) {
             ZStack {
-                LinearGradient(colors: page.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+                LinearGradient(colors: [SwiftUI.Color(red: 0.53, green: 0.79, blue: 0.94), SwiftUI.Color(red: 0.88, green: 0.86, blue: 0.97)], startPoint: .topLeading, endPoint: .bottomTrailing)
                 RadialGradient(colors: [.white.opacity(0.35), .clear], center: .bottomLeading, startRadius: 20, endRadius: 320)
-
-                RoundedRectangle(cornerRadius: 28, style: .continuous)
-                    .fill(.white.opacity(0.92))
-                    .frame(width: 180, height: 180)
-                    .shadow(color: .black.opacity(0.15), radius: 20, y: 10)
-                    .overlay(
-                        SwiftUI.Image(systemName: page.systemImage)
-                            .font(.system(size: 72, weight: .medium))
-                            .foregroundStyle(LinearGradient(colors: page.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
-                    )
+                illustration
+                    .padding(24)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 300)
             .clipShape(RoundedRectangle(cornerRadius: 0))
+            .accessibilityHidden(true)
+
+            HStack(spacing: 8) {
+                ForEach(0..<3) { index in
+                    Circle()
+                        .fill(index == page.id ? AnyShapeStyle(.primary) : AnyShapeStyle(.quaternary))
+                        .frame(width: 6, height: 6)
+                }
+            }
+            .padding(.vertical, 22)
             .accessibilityHidden(true)
 
             VStack(spacing: 12) {
@@ -134,10 +129,64 @@ struct OnboardingPageView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(.horizontal, 28)
-            .padding(.top, 28)
-
-            Spacer(minLength: 0)
+            .padding(.bottom, 20)
+          }
+          .frame(maxWidth: .infinity)
         }
         .frame(maxWidth: .infinity)
+        .accessibilityValue(String(format: NSLocalizedString("Page %d of 3", comment: "Onboarding"), page.id + 1))
+    }
+
+    /// Static examples of existing features, matching the reference's product illustrations.
+    @ViewBuilder
+    private var illustration: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            switch page.id {
+            case 0:
+                Label(NSLocalizedString("Inbox", comment: ""), systemImage: "tray")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Text(NSLocalizedString("Ideas for the weekend", comment: "Onboarding illustration"))
+                    .font(.title3.weight(.semibold))
+                Label(NSLocalizedString("Make time to write", comment: "Onboarding illustration"), systemImage: "square")
+                    .font(.body)
+                Divider()
+                HStack {
+                    SwiftUI.Image(systemName: "textformat")
+                    Spacer()
+                    SwiftUI.Image(systemName: "plus")
+                }
+                .foregroundStyle(.secondary)
+            case 1:
+                HStack(spacing: 10) {
+                    ForEach(Array(FolderColor.allCases.prefix(7)), id: \.rawValue) { color in
+                        Circle().fill(SwiftUI.Color(uiColor: color.platformColor))
+                            .frame(maxWidth: .infinity)
+                            .aspectRatio(1, contentMode: .fit)
+                    }
+                }
+                Divider()
+                Label(NSLocalizedString("Projects", comment: "Onboarding illustration"), systemImage: "folder.fill")
+                    .foregroundStyle(.blue)
+                Label(NSLocalizedString("Ideas", comment: "Onboarding illustration"), systemImage: "lightbulb.fill")
+                    .foregroundStyle(.orange)
+            default:
+                Text(NSLocalizedString("Keep your ideas connected.", comment: "Onboarding illustration"))
+                    .font(.title3.weight(.semibold))
+                Text("#work/ideas")
+                    .font(.title3)
+                    .foregroundStyle(.blue)
+                    .padding(8)
+                    .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+                Divider()
+                Label(NSLocalizedString("Tags", comment: ""), systemImage: "number")
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .font(.body)
+        .padding(22)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 22))
+        .shadow(color: .black.opacity(0.12), radius: 18, y: 12)
     }
 }

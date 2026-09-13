@@ -25,7 +25,7 @@ final class DailyNotesViewController: UIHostingController<DailyNotesView> {
         super.viewDidLoad()
 
         navigationItem.largeTitleDisplayMode = .never
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .systemGroupedBackground
     }
 
     override func viewWillAppear(_ animated: Bool) {

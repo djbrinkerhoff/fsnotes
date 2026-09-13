@@ -47,6 +47,34 @@ class NoteCellView: SwipeTableViewCell {
 
         configureSelectionBackground()
         configureCardViewIfNeeded()
+        backgroundColor = .clear
+        title.adjustsFontForContentSizeCategory = true
+        preview.adjustsFontForContentSizeCategory = true
+        date.adjustsFontForContentSizeCategory = true
+
+        // Keep the text column aligned with the page thumbnails in the library.
+        for constraint in pin.constraints {
+            if constraint.firstAttribute == .width { constraint.constant = 30 }
+            if constraint.firstAttribute == .height { constraint.constant = 38 }
+        }
+        for constraint in contentView.constraints {
+            if (constraint.firstItem as? UIView) === title,
+               (constraint.secondItem as? UIView) === pin {
+                constraint.constant = 12
+            }
+            if (constraint.firstItem as? UIView) === preview,
+               constraint.firstAttribute == .top,
+               (constraint.secondItem as? UIView) === pin {
+                constraint.isActive = false
+            }
+        }
+        preview.topAnchor.constraint(equalTo: title.bottomAnchor, constant: 3).isActive = true
+        pin.contentMode = .center
+        pin.layer.cornerRadius = 3
+        pin.layer.borderWidth = 0.5
+        pin.backgroundColor = .secondarySystemGroupedBackground
+        pin.layer.borderColor = UIColor.separator.cgColor
+        pin.isAccessibilityElement = false
     }
 
     override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
@@ -54,6 +82,7 @@ class NoteCellView: SwipeTableViewCell {
 
         if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
             updateCardAppearance()
+            pin.layer.borderColor = UIColor.separator.cgColor
         }
     }
 
@@ -124,8 +153,8 @@ class NoteCellView: SwipeTableViewCell {
     /// glyph at 7pt). Inside a card that column has to move in so the glyph and
     /// text sit within the 16pt card inset.
     private func applyHorizontalInsets(cards: Bool) {
-        let leading: CGFloat = cards ? 30 + 20 : 30
-        let trailing: CGFloat = cards ? 25 + 16 : 25
+        let leading: CGFloat = cards ? 74 : 62
+        let trailing: CGFloat = cards ? 30 : 20
 
         for constraint in contentView.constraints {
             guard let first = constraint.firstItem as? UIView else { continue }
@@ -239,7 +268,7 @@ class NoteCellView: SwipeTableViewCell {
             pin.tintColor = .secondaryLabel
         }
 
-        let font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        let font = UIFont.systemFont(ofSize: 17, weight: .regular)
         let fontMetrics = UIFontMetrics(forTextStyle: .headline)
         let scaledFont = fontMetrics.scaledFont(for: font)
         title.font = scaledFont

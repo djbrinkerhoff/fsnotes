@@ -53,7 +53,7 @@ final class HomeViewController: UIHostingController<HomeView> {
         super.viewDidLoad()
 
         navigationItem.largeTitleDisplayMode = .always
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .systemGroupedBackground
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -61,8 +61,8 @@ final class HomeViewController: UIHostingController<HomeView> {
 
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationController?.setToolbarHidden(false, animated: animated)
-        navigationController?.toolbar.tintColor = UIColor.mainTheme
-        navigationController?.navigationBar.tintColor = UIColor.mainTheme
+        navigationController?.toolbar.tintColor = .label
+        navigationController?.navigationBar.tintColor = .label
 
         model.reload()
     }

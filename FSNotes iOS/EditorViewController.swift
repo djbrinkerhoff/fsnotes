@@ -80,10 +80,13 @@ class EditorViewController: UIViewController,
         super.viewDidLoad()
         
         var items = [UIBarButtonItem]()
-        items.append(UIBarButtonItem(systemImageName: "arrow.uturn.backward", target: self, selector: #selector(undoPressed)))
-        items.append(UIBarButtonItem(systemImageName: "arrow.uturn.forward", target: self, selector: #selector(redoPressed)))
+        let undo = UIBarButtonItem(image: UIImage(systemName: "arrow.uturn.backward"), style: .plain, target: self, action: #selector(undoPressed))
+        undo.accessibilityLabel = NSLocalizedString("Undo", comment: "")
+        let redo = UIBarButtonItem(image: UIImage(systemName: "arrow.uturn.forward"), style: .plain, target: self, action: #selector(redoPressed))
+        redo.accessibilityLabel = NSLocalizedString("Redo", comment: "")
+        items.append(contentsOf: [undo, redo])
         items.append(UIBarButtonItem.flexibleSpace())
-        items.append(UIBarButtonItem(systemImageName: "square.and.pencil", target: self, selector: #selector(newNote)))
+        items.append(Buttons.getNewNote(target: self, selector: #selector(newNote)))
 
         toolbarItems = items
 
@@ -138,8 +141,8 @@ class EditorViewController: UIViewController,
         navigationItem.largeTitleDisplayMode = .never
 
         navigationController?.setToolbarHidden(false, animated: true)
-        navigationController?.toolbar.tintColor = UIColor.mainTheme
-        navigationController?.navigationBar.tintColor = UIColor.mainTheme
+        navigationController?.toolbar.tintColor = .label
+        navigationController?.navigationBar.tintColor = .label
     }
 
     @objc func search() {
@@ -237,10 +240,11 @@ class EditorViewController: UIViewController,
 
         let wrappedMenu = menu.replacingChildren([quickSection] + menu.children)
 
-        navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(systemImageName: "ellipsis.circle", menu: wrappedMenu),
-            UIBarButtonItem(systemImageName: "square.and.arrow.up", target: self, selector: #selector(sharePressed))
-        ]
+        let more = UIBarButtonItem(image: UIImage(systemName: "ellipsis"), menu: wrappedMenu)
+        more.accessibilityLabel = NSLocalizedString("More", comment: "")
+        let share = UIBarButtonItem(image: UIImage(systemName: "square.and.arrow.up"), style: .plain, target: self, action: #selector(sharePressed))
+        share.accessibilityLabel = NSLocalizedString("Share", comment: "")
+        navigationItem.rightBarButtonItems = [more, share]
     }
 
     @objc public func sharePressed() {

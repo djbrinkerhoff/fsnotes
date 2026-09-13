@@ -47,7 +47,7 @@ class NotesTableView: UITableView,
         guard !didConfigureSeparatorStyle else { return }
         didConfigureSeparatorStyle = true
 
-        separatorInset = UIEdgeInsets(top: 0, left: 56, bottom: 0, right: 16)
+        separatorInset = UIEdgeInsets(top: 0, left: 62, bottom: 0, right: 20)
         separatorColor = .separator
     }
 
@@ -92,7 +92,7 @@ class NotesTableView: UITableView,
         switch displayMode {
         case .compact:
             // Single-line title + date, no preview, no image previews.
-            return 52
+            return max(56, UIFont.preferredFont(forTextStyle: .body).lineHeight + 30)
         case .cards:
             return calcCardsHeight(note: note)
         case .list:
@@ -115,7 +115,7 @@ class NotesTableView: UITableView,
             return 160
         }
 
-        return 75
+        return max(72, UIFont.preferredFont(forTextStyle: .body).lineHeight + UIFont.preferredFont(forTextStyle: .subheadline).lineHeight + 30)
     }
 
     /// Craft-like card height: the `.list` baseline (title + one preview

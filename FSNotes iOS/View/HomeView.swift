@@ -39,9 +39,9 @@ struct HomeView: View {
         .listStyle(.plain)
         .listSectionSpacing(.compact)
         .scrollContentBackground(.hidden)
-        .background(SwiftUI.Color(uiColor: .systemBackground))
+        .background(SwiftUI.Color(uiColor: .systemGroupedBackground))
         .navigationTitle(NSLocalizedString("Home", comment: "Home screen title"))
-        .tint(SwiftUI.Color(uiColor: .mainTheme))
+        .tint(SwiftUI.Color(uiColor: .label))
         .toolbar { toolbarContent }
     }
 
@@ -65,15 +65,18 @@ struct HomeView: View {
         }
 
         ToolbarItemGroup(placement: .bottomBar) {
-            Button(NSLocalizedString("Home", comment: ""), systemImage: "house.fill") {}
-                .disabled(true)
-                .accessibilityAddTraits(.isSelected)
+            Toggle(NSLocalizedString("Home", comment: ""), systemImage: "house", isOn: .constant(true))
+                .toggleStyle(.button)
+                .tint(.blue)
+                .labelStyle(.iconOnly)
             Button(NSLocalizedString("Todo", comment: ""), systemImage: "checkmark.square") {
                 actions.openTodo()
             }
+            .labelStyle(.iconOnly)
             Button(NSLocalizedString("Daily Notes", comment: ""), systemImage: "calendar") {
                 actions.dailyNote()
             }
+            .labelStyle(.iconOnly)
         }
 
         if #available(iOS 26.0, *) {
@@ -87,6 +90,7 @@ struct HomeView: View {
                 actions.newNote(nil)
             }
             .fontWeight(.semibold)
+            .labelStyle(.iconOnly)
         }
     }
 
@@ -96,6 +100,8 @@ struct HomeView: View {
                 .listRowSeparator(.hidden)
                 .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 12, trailing: 16))
         }
+        .listRowBackground(SwiftUI.Color.clear)
+        .listSectionSeparator(.hidden)
     }
 
     private var quickLinksSection: some View {
@@ -109,12 +115,17 @@ struct HomeView: View {
                     .buttonStyle(.plain)
                 }
             }
+            .listRowBackground(SwiftUI.Color.clear)
+            .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+            .listSectionSeparator(.hidden)
     }
 
     @ViewBuilder
     private var starredSection: some View {
             if !model.starred.isEmpty {
                 Section {
+                    HomeSectionHeader(title: NSLocalizedString("Starred", comment: "Home section"), action: actions.openStarred)
+                        .listRowSeparator(.hidden)
                     ForEach(model.starred) { item in
                         Button {
                             actions.openNote(item.note)
@@ -123,14 +134,17 @@ struct HomeView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                } header: {
-                    HomeSectionHeader(title: NSLocalizedString("Starred", comment: "Home section"), action: actions.openStarred)
                 }
+                .listRowBackground(SwiftUI.Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                .listSectionSeparator(.hidden)
             }
     }
 
     private var foldersSection: some View {
             Section {
+                HomeSectionHeader(title: NSLocalizedString("Folders", comment: "Home section"), action: actions.openFolders)
+                    .listRowSeparator(.hidden)
                 if model.folders.isEmpty {
                     Text(model.isLoaded
                          ? NSLocalizedString("No folders yet", comment: "Home empty state")
@@ -178,15 +192,18 @@ struct HomeView: View {
                         }
                     }
                 }
-            } header: {
-                HomeSectionHeader(title: NSLocalizedString("Folders", comment: "Home section"), action: actions.openFolders)
             }
+            .listRowBackground(SwiftUI.Color.clear)
+            .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+            .listSectionSeparator(.hidden)
     }
 
     @ViewBuilder
     private var tagsSection: some View {
             if model.showsTags && !model.tags.isEmpty {
                 Section {
+                    HomeSectionHeader(title: NSLocalizedString("Tags", comment: "Home section"), action: actions.openTags)
+                        .listRowSeparator(.hidden)
                     ForEach(model.tags.filter { $0.depth == 0 }) { tag in
                         Button {
                             actions.openTag(tag.fullName)
@@ -195,9 +212,10 @@ struct HomeView: View {
                         }
                         .buttonStyle(.plain)
                     }
-                } header: {
-                    HomeSectionHeader(title: NSLocalizedString("Tags", comment: "Home section"), action: actions.openTags)
                 }
+                .listRowBackground(SwiftUI.Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                .listSectionSeparator(.hidden)
             }
     }
 
@@ -212,6 +230,9 @@ struct HomeView: View {
                     }
                     .buttonStyle(.plain)
                 }
+                .listRowBackground(SwiftUI.Color.clear)
+                .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                .listSectionSeparator(.hidden)
             }
     }
 }
@@ -249,7 +270,7 @@ struct HomeSearchRow: View {
             .font(.body)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .background(SwiftUI.Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(SwiftUI.Color(uiColor: .tertiarySystemFill), in: Capsule())
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -269,7 +290,7 @@ struct HomeSectionHeader: View {
             HStack(spacing: 6) {
                 Text(title)
                     .font(.headline)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(SwiftUI.Color(uiColor: .label))
                 if action != nil {
                     SwiftUI.Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
@@ -299,10 +320,17 @@ struct HomeRow: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            SwiftUI.Image(systemName: systemImage)
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(tint.map { AnyShapeStyle($0) } ?? iconStyle.foreground)
-                .frame(width: 28, height: 28)
+            Group {
+                if iconStyle == .document && systemImage == "doc.text" {
+                    DocumentGlyph(width: 18, height: 24)
+                } else {
+                    SwiftUI.Image(systemName: systemImage)
+                        .font(.body)
+                        .foregroundStyle(tint.map { AnyShapeStyle($0) } ?? iconStyle.foreground)
+                }
+            }
+            .frame(width: 24, height: 28)
+            .accessibilityHidden(true)
             Text(title)
                 .font(.body)
                 .foregroundStyle(.primary)

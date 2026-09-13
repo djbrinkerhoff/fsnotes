@@ -23,7 +23,7 @@ class SidebarCellView: NSTableCellView {
         didSet { updateIconTint() }
     }
 
-    /// Craft-style tint: accent for system rows, neutral for folders and tags,
+    /// Craft-style tint: neutral navigation with user-selected folder colors,
     /// white while the row is drawn on the emphasized selection pill.
     override var backgroundStyle: NSView.BackgroundStyle {
         didSet { updateIconTint() }
@@ -42,14 +42,7 @@ class SidebarCellView: NSTableCellView {
             return
         }
 
-        switch type {
-        case .Project, .ProjectEncryptedLocked, .ProjectEncryptedUnlocked, .Tag:
-            icon.contentTintColor = .secondaryLabelColor
-        case .none:
-            icon.contentTintColor = .controlAccentColor
-        default:
-            icon.contentTintColor = .controlAccentColor
-        }
+        icon.contentTintColor = .secondaryLabelColor
     }
 
     @IBAction func projectName(_ sender: NSTextField) {

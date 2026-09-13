@@ -41,30 +41,6 @@ extension EditorViewController {
         ))
         fixedWidth += Self.toolbarButtonSide
 
-        items.append(makeToolbarButton(
-            systemImage: "list.number",
-            selector: #selector(EditorViewController.numberedListPressed),
-            tint: .label,
-            accessibilityLabel: NSLocalizedString("Numbered list", comment: "")
-        ))
-        fixedWidth += Self.toolbarButtonSide
-
-        items.append(makeToolbarButton(
-            systemImage: "decrease.indent",
-            selector: #selector(EditorViewController.unIndentPressed),
-            tint: .label,
-            accessibilityLabel: NSLocalizedString("Outdent", comment: "")
-        ))
-        fixedWidth += Self.toolbarButtonSide
-
-        items.append(makeToolbarButton(
-            systemImage: "increase.indent",
-            selector: #selector(EditorViewController.indentPressed),
-            tint: .label,
-            accessibilityLabel: NSLocalizedString("Indent", comment: "")
-        ))
-        fixedWidth += Self.toolbarButtonSide
-
         items.append(UIBarButtonItem.flexibleSpace())
 
         items.append(makeInsertMenuButton())
@@ -127,11 +103,11 @@ extension EditorViewController {
 
     private func makeInsertMenuButton() -> UIBarButtonItem {
         let config = UIImage.SymbolConfiguration(pointSize: 24, weight: .regular)
-        let image = UIImage(systemName: "plus.circle.fill", withConfiguration: config)
+        let image = UIImage(systemName: "plus", withConfiguration: config)
 
         let button = UIButton(type: .system)
         button.setImage(image, for: .normal)
-        button.tintColor = .mainTheme
+        button.tintColor = .label
         button.menu = makeInsertMenu()
         button.showsMenuAsPrimaryAction = true
         button.frame = CGRect(x: 0, y: 0, width: Self.toolbarButtonSide, height: Self.toolbarButtonSide)
@@ -252,9 +228,15 @@ extension EditorViewController {
             children: styleActions
         )
 
+        let listMenu = UIMenu(title: NSLocalizedString("Lists and indentation", comment: ""), image: UIImage(systemName: "list.bullet"), children: [
+            UIAction(title: NSLocalizedString("Numbered list", comment: ""), image: UIImage(systemName: "list.number")) { [weak self] _ in self?.numberedListPressed() },
+            UIAction(title: NSLocalizedString("Indent", comment: ""), image: UIImage(systemName: "increase.indent")) { [weak self] _ in self?.indentPressed() },
+            UIAction(title: NSLocalizedString("Outdent", comment: ""), image: UIImage(systemName: "decrease.indent")) { [weak self] _ in self?.unIndentPressed() }
+        ])
+
         return UIMenu(
             title: NSLocalizedString("Aa", comment: ""),
-            children: [textMenu, styleMenu]
+            children: [textMenu, styleMenu, listMenu]
         )
     }
 

@@ -246,10 +246,10 @@ class NoteCellView: NSTableCellView {
                 }
                 pin.isHidden = false
             } else {
-                if #available(macOS 12.0, *), let image = NSImage(systemSymbolName: "pin", accessibilityDescription: nil) {
+                if #available(macOS 12.0, *), let image = NSImage(systemSymbolName: "star.fill", accessibilityDescription: NSLocalizedString("Starred", comment: "Note status")) {
                     pin.image = image
                     pin.image?.isTemplate = true
-                    pin.contentTintColor = .controlAccentColor
+                    pin.contentTintColor = .systemYellow
                 } else {
                     pin.image = NSImage(named: "pin")
                     pin.image?.isTemplate = true

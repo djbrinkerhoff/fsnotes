@@ -34,6 +34,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         let nav = MainNavigationController(rootViewController: root)
         nav.setNavigationBarHidden(false, animated: false)
         nav.navigationBar.prefersLargeTitles = ViewController.usesHomeNavigation
+        if ViewController.usesHomeNavigation {
+            nav.navigationBar.largeTitleTextAttributes = [
+                .font: UIFontMetrics(forTextStyle: .title2).scaledFont(for: .systemFont(ofSize: 26, weight: .bold))
+            ]
+            nav.navigationBar.tintColor = .label
+            nav.toolbar.tintColor = .label
+        }
         mainController = nav
 
         window?.rootViewController = nav

@@ -17,23 +17,13 @@ class SidebarTableRowView: NSTableRowView {
         let selectionRect = bounds.insetBy(dx: 6, dy: 1)
         let path = NSBezierPath(roundedRect: selectionRect, xRadius: 6, yRadius: 6)
 
-        if isEmphasized {
-            NSColor.selectedContentBackgroundColor.setFill()
-        } else {
-            NSColor.unemphasizedSelectedContentBackgroundColor.setFill()
-        }
+        NSColor.labelColor.withAlphaComponent(isEmphasized ? 0.08 : 0.05).setFill()
 
         path.fill()
     }
 
-    // Ensures label/icon tint (which read NSTableCellView.backgroundStyle) flip to
-    // their "on selected background" appearance only when the row is actually
-    // selected and the window is key/emphasized — matching drawSelection above.
+    // The neutral selection pill retains normal text and custom folder colors.
     override var interiorBackgroundStyle: NSView.BackgroundStyle {
-        if isSelected && isEmphasized {
-            return .emphasized
-        }
-
         return .normal
     }
 }

@@ -118,10 +118,11 @@ struct DailyNotesView: View {
             }
         }
         .listStyle(.plain)
+        .listRowBackground(SwiftUI.Color.clear)
         .scrollContentBackground(.hidden)
-        .background(SwiftUI.Color(uiColor: .systemBackground))
+        .background(SwiftUI.Color(uiColor: .systemGroupedBackground))
         .navigationTitle(NSLocalizedString("Daily Notes", comment: ""))
-        .tint(SwiftUI.Color(uiColor: .mainTheme))
+        .tint(SwiftUI.Color(uiColor: .label))
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
@@ -191,19 +192,8 @@ struct DailyDaySection: View {
     var body: some View {
         Section {
             VStack(alignment: .leading, spacing: 10) {
-                HStack(alignment: .firstTextBaseline, spacing: 8) {
-                    Text(day.date, format: .dateTime.month(.abbreviated).day())
-                        .font(isToday ? .system(size: 30, weight: .bold) : .title3.weight(.bold))
-                    if let relative {
-                        Text(relative)
-                            .font(isToday ? .title3.weight(.semibold) : .body.weight(.semibold))
-                            .foregroundStyle(isToday ? AnyShapeStyle(.tint) : AnyShapeStyle(.secondary))
-                        Text("·")
-                            .foregroundStyle(.tertiary)
-                    }
-                    Text(day.date, format: .dateTime.weekday(.wide))
-                        .font(isToday ? .title3 : .body)
-                        .foregroundStyle(.secondary)
+                HStack(alignment: .top, spacing: 8) {
+                    dayHeading
                     Spacer(minLength: 0)
                     Menu {
                         Button {
@@ -215,9 +205,10 @@ struct DailyDaySection: View {
                                   systemImage: "doc.text")
                         }
                     } label: {
-                        SwiftUI.Image(systemName: "ellipsis")
-                            .foregroundStyle(.tertiary)
-                            .frame(width: 28, height: 28)
+                        Label(NSLocalizedString("Day options", comment: "Daily notes"), systemImage: "ellipsis")
+                            .labelStyle(.iconOnly)
+                            .foregroundStyle(.secondary)
+                            .frame(width: 44, height: 44)
                             .contentShape(Rectangle())
                     }
                     .accessibilityLabel(NSLocalizedString("Day options", comment: "Daily notes"))
@@ -233,7 +224,7 @@ struct DailyDaySection: View {
                             DocumentGlyph()
                             VStack(alignment: .leading, spacing: 3) {
                                 Text(note.getTitle() ?? note.getShortTitle())
-                                    .font(.body.weight(.semibold))
+                                    .font(.body)
                                     .foregroundStyle(.primary)
                                     .lineLimit(1)
                                 if !note.preview.isEmpty {
@@ -264,6 +255,43 @@ struct DailyDaySection: View {
             }
             .padding(.vertical, 8)
             .listRowSeparator(.hidden)
+            .listRowBackground(SwiftUI.Color.clear)
         }
+        .listSectionSeparator(.hidden)
+    }
+
+    private var dayHeading: some View {
+        ViewThatFits(in: .horizontal) {
+            if !isToday {
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    dateLabel
+                    weekdayLabel
+                }
+            }
+            VStack(alignment: .leading, spacing: 2) {
+                dateLabel
+                weekdayLabel
+            }
+        }
+    }
+
+    private var dateLabel: some View {
+        Text(day.date, format: .dateTime.month(.abbreviated).day())
+            .font(isToday ? .title.bold() : .headline)
+            .fixedSize(horizontal: true, vertical: false)
+    }
+
+    private var weekdayLabel: some View {
+        HStack(spacing: 4) {
+            if let relative {
+                Text(relative)
+                    .fontWeight(.semibold)
+                    .foregroundStyle(isToday ? AnyShapeStyle(SwiftUI.Color.blue) : AnyShapeStyle(.secondary))
+                Text("·")
+            }
+            Text(day.date, format: .dateTime.weekday(.wide))
+        }
+        .font(.body)
+        .foregroundStyle(.secondary)
     }
 }

@@ -34,16 +34,9 @@ class Buttons {
     }
 
     public static func getNewNote(target: Any, selector: Selector) -> UIBarButtonItem {
-        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .bold, scale: .default)
-        let image = UIImage(systemName: "square.and.pencil", withConfiguration: config)?
-            .imageWithColor(color1: UIColor.mainTheme)
-
-        let button = UIButton(type: .system)
-        button.setImage(image, for: .normal)
-        button.tintColor = .mainTheme
-        button.imageEdgeInsets = UIEdgeInsets(top: -2, left: 3, bottom: 2, right: -3)
-        button.addTarget(target, action: selector, for: .touchUpInside)
-
-        return UIBarButtonItem(customView: button)
+        let item = UIBarButtonItem(image: UIImage(systemName: "plus"), style: .plain, target: target, action: selector)
+        item.tintColor = .label
+        item.accessibilityLabel = NSLocalizedString("New Note", comment: "")
+        return item
     }
 }

@@ -17,12 +17,17 @@ struct LibraryBottomBar: ViewModifier {
 
     func body(content: Content) -> some View {
         content.toolbar {
-            ToolbarItem(placement: .bottomBar) { Spacer() }
+            if #available(iOS 26.0, *) {
+                ToolbarSpacer(.flexible, placement: .bottomBar)
+            } else {
+                ToolbarItem(placement: .bottomBar) { Spacer() }
+            }
             ToolbarItem(placement: .bottomBar) {
                 Button(NSLocalizedString("New Note", comment: ""), systemImage: "plus") {
                     newNote()
                 }
                 .fontWeight(.semibold)
+                .labelStyle(.iconOnly)
             }
         }
     }
@@ -48,11 +53,11 @@ struct StarredScreen: View {
 
     var body: some View {
         List {
-            if model.starred.isEmpty {
-                Section {
-                    LibraryHint(text: NSLocalizedString("Pin notes you want to find quickly. Pinned notes show up here and on Home.", comment: "Starred empty state"))
-                }
+            Section {
+                LibraryHint(text: NSLocalizedString("Pin notes you want to find quickly. Pinned notes show up here and on Home.", comment: "Starred empty state"))
             }
+            .listRowBackground(SwiftUI.Color.clear)
+            .listSectionSeparator(.hidden)
 
             ForEach(groups, id: \.0) { bucket, items in
                 Section {
@@ -67,13 +72,15 @@ struct StarredScreen: View {
                 } header: {
                     LibraryGroupHeader(title: bucket.title)
                 }
+                .listRowBackground(SwiftUI.Color.clear)
+                .listSectionSeparator(.hidden)
             }
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(SwiftUI.Color(uiColor: .systemBackground))
+        .background(SwiftUI.Color(uiColor: .systemGroupedBackground))
         .navigationTitle(NSLocalizedString("Starred", comment: ""))
-        .tint(SwiftUI.Color(uiColor: .mainTheme))
+        .tint(SwiftUI.Color(uiColor: .label))
         .libraryBottomBar(newNote: newNote)
     }
 }
@@ -82,7 +89,7 @@ struct LibraryNoteRow: View {
     var item: HomeLibraryModel.StarredNote
 
     var body: some View {
-        HStack(alignment: .top, spacing: 12) {
+        HStack(alignment: .center, spacing: 16) {
             DocumentGlyph()
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
@@ -92,7 +99,7 @@ struct LibraryNoteRow: View {
                             .foregroundStyle(.yellow)
                     }
                     Text(item.title)
-                        .font(.body.weight(.semibold))
+                        .font(.body)
                         .foregroundStyle(.primary)
                         .lineLimit(1)
                 }
@@ -118,6 +125,9 @@ struct LibraryNoteRow: View {
 
 /// Craft's little "page" thumbnail used in list rows.
 struct DocumentGlyph: View {
+    var width: CGFloat = 30
+    var height: CGFloat = 38
+
     var body: some View {
         RoundedRectangle(cornerRadius: 4, style: .continuous)
             .fill(SwiftUI.Color(uiColor: .systemBackground))
@@ -126,17 +136,17 @@ struct DocumentGlyph: View {
                     .strokeBorder(SwiftUI.Color(uiColor: .separator), lineWidth: 1)
             )
             .overlay(
-                VStack(alignment: .leading, spacing: 3) {
-                    Capsule().frame(width: 14, height: 2)
-                    Capsule().frame(width: 20, height: 2)
-                    Capsule().frame(width: 16, height: 2)
-                    Capsule().frame(width: 18, height: 2)
+                VStack(alignment: .leading, spacing: height * 0.07) {
+                    Capsule().frame(width: width * 0.45, height: 1)
+                    Capsule().frame(width: width * 0.65, height: 1)
+                    Capsule().frame(width: width * 0.55, height: 1)
+                    Capsule().frame(width: width * 0.6, height: 1)
                 }
                 .foregroundStyle(.tertiary)
-                .padding(6),
+                .padding(width * 0.15),
                 alignment: .topLeading
             )
-            .frame(width: 34, height: 44)
+            .frame(width: width, height: height)
             .accessibilityHidden(true)
     }
 }
@@ -250,12 +260,14 @@ struct FoldersScreen: View {
                     LibraryGroupHeader(title: NSLocalizedString("Folders", comment: "Home section"))
                 }
             }
+            .listRowBackground(SwiftUI.Color.clear)
+            .listSectionSeparator(.hidden)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(SwiftUI.Color(uiColor: .systemBackground))
+        .background(SwiftUI.Color(uiColor: .systemGroupedBackground))
         .navigationTitle(parent?.label ?? NSLocalizedString("Folders", comment: ""))
-        .tint(SwiftUI.Color(uiColor: .mainTheme))
+        .tint(SwiftUI.Color(uiColor: .label))
         .libraryBottomBar { newNote(parent) }
     }
 }
@@ -271,17 +283,14 @@ struct FolderRow: View {
                 .frame(width: 32, height: 32)
             VStack(alignment: .leading, spacing: 2) {
                 Text(folder.title)
-                    .font(.body.weight(.semibold))
+                    .font(.body)
                     .foregroundStyle(.primary)
                     .lineLimit(1)
-                Text(String(format: NSLocalizedString("%d Items", comment: "Folder row"), folder.noteCount))
+                Text(String(format: NSLocalizedString(folder.noteCount == 1 ? "%d Item" : "%d Items", comment: "Folder row"), folder.noteCount))
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
-            SwiftUI.Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
         }
         .padding(.vertical, 4)
         .contentShape(Rectangle())
@@ -317,12 +326,14 @@ struct TagsScreen: View {
                     )
                 }
             }
+            .listRowBackground(SwiftUI.Color.clear)
+            .listSectionSeparator(.hidden)
         }
         .listStyle(.plain)
         .scrollContentBackground(.hidden)
-        .background(SwiftUI.Color(uiColor: .systemBackground))
+        .background(SwiftUI.Color(uiColor: .systemGroupedBackground))
         .navigationTitle(NSLocalizedString("Tags", comment: ""))
-        .tint(SwiftUI.Color(uiColor: .mainTheme))
+        .tint(SwiftUI.Color(uiColor: .label))
         .libraryBottomBar(newNote: newNote)
     }
 }
@@ -347,7 +358,7 @@ final class LibraryScreenViewController<Content: View>: UIHostingController<Cont
         super.viewDidLoad()
 
         navigationItem.largeTitleDisplayMode = .always
-        view.backgroundColor = .systemBackground
+        view.backgroundColor = .systemGroupedBackground
     }
 
     override func viewWillAppear(_ animated: Bool) {
