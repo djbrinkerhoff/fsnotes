@@ -15,6 +15,8 @@ struct HomeActions {
     var openNote: (Note) -> Void = { _ in }
     var newNote: (Project?) -> Void = { _ in }
     var folderSettings: (Project) -> Void = { _ in }
+    var dailyNote: () -> Void = {}
+    var settings: () -> Void = {}
 }
 
 struct HomeView: View {
@@ -120,6 +122,30 @@ struct HomeView: View {
         .listSectionSpacing(.compact)
         .scrollContentBackground(.hidden)
         .background(SwiftUI.Color(uiColor: .systemBackground))
+        .navigationTitle(NSLocalizedString("Home", comment: "Home screen title"))
+        .tint(SwiftUI.Color(uiColor: .mainTheme))
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(NSLocalizedString("Settings", comment: ""), systemImage: "gearshape") {
+                    actions.settings()
+                }
+            }
+
+            ToolbarItemGroup(placement: .bottomBar) {
+                Button(NSLocalizedString("Daily Note", comment: ""), systemImage: "calendar") {
+                    actions.dailyNote()
+                }
+                Spacer()
+                Button(NSLocalizedString("Search", comment: ""), systemImage: "magnifyingglass") {
+                    actions.search()
+                }
+                Spacer()
+                Button(NSLocalizedString("New Note", comment: ""), systemImage: "square.and.pencil") {
+                    actions.newNote(nil)
+                }
+                .fontWeight(.semibold)
+            }
+        }
     }
 }
 
@@ -154,7 +180,7 @@ struct HomeSearchRow: View {
             .font(.body)
             .padding(.horizontal, 12)
             .padding(.vertical, 10)
-            .background(SwiftUI.Color(uiColor: .secondarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+            .background(SwiftUI.Color(uiColor: .tertiarySystemFill), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -195,7 +221,7 @@ struct HomeRow: View {
                 .font(.footnote.weight(.semibold))
                 .foregroundStyle(.tertiary)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
         .contentShape(Rectangle())
     }
 }
@@ -225,7 +251,7 @@ struct HomeNoteRow: View {
                 .foregroundStyle(.tertiary)
                 .padding(.top, 4)
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
         .contentShape(Rectangle())
     }
 }
@@ -273,7 +299,7 @@ struct HomeOutlineRow: View {
                     : NSLocalizedString("Expand folder", comment: "Sidebar accessibility"))
             }
         }
-        .padding(.vertical, 4)
+        .padding(.vertical, 2)
         .padding(.leading, CGFloat(depth) * 24)
         .animation(.snappy, value: isExpanded)
     }

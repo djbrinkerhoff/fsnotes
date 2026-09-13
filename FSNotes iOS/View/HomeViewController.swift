@@ -23,6 +23,8 @@ final class HomeViewController: UIHostingController<HomeView> {
         actions.openNote = { note in UIApplication.getVC().openFromHome(note: note) }
         actions.newNote = { project in UIApplication.getVC().createNoteFromHome(in: project) }
         actions.folderSettings = { project in UIApplication.getVC().openFolderSettingsFromHome(project: project) }
+        actions.dailyNote = { UIApplication.getVC().openDailyNote() }
+        actions.settings = { UIApplication.getVC().openSettings() }
 
         rootView = HomeView(model: model, actions: actions)
     }
@@ -34,19 +36,8 @@ final class HomeViewController: UIHostingController<HomeView> {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        title = NSLocalizedString("Home", comment: "Home screen title")
         navigationItem.largeTitleDisplayMode = .always
         view.backgroundColor = .systemBackground
-
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
-            image: UIImage(systemName: "gearshape"),
-            style: .plain,
-            target: self,
-            action: #selector(openSettings)
-        )
-        navigationItem.rightBarButtonItem?.accessibilityLabel = NSLocalizedString("Settings", comment: "")
-
-        configureToolbar()
     }
 
     override func viewWillAppear(_ animated: Bool) {
@@ -60,48 +51,9 @@ final class HomeViewController: UIHostingController<HomeView> {
         model.reload()
     }
 
-    private func configureToolbar() {
-        let daily = UIBarButtonItem(
-            image: UIImage(systemName: "calendar"),
-            style: .plain,
-            target: self,
-            action: #selector(openDailyNote)
-        )
-        daily.accessibilityLabel = NSLocalizedString("Daily Note", comment: "")
-
-        let search = UIBarButtonItem(
-            image: UIImage(systemName: "magnifyingglass"),
-            style: .plain,
-            target: self,
-            action: #selector(openSearchAction)
-        )
-        search.accessibilityLabel = NSLocalizedString("Search", comment: "")
-
-        let newNote = Buttons.getNewNote(target: self, selector: #selector(createNote))
-        newNote.accessibilityLabel = NSLocalizedString("New Note", comment: "")
-
-        toolbarItems = [daily, .flexibleSpace(), search, .flexibleSpace(), newNote]
-    }
-
     // MARK: - Actions
 
     private func openSearch() {
         UIApplication.getVC().showSearchFromHome()
-    }
-
-    @objc private func openSearchAction() {
-        openSearch()
-    }
-
-    @objc private func openSettings() {
-        UIApplication.getVC().openSettings()
-    }
-
-    @objc private func openDailyNote() {
-        UIApplication.getVC().openDailyNote()
-    }
-
-    @objc private func createNote() {
-        UIApplication.getVC().createNoteFromHome(in: nil)
     }
 }

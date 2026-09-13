@@ -176,10 +176,18 @@ class EditorViewController: UIViewController,
     }
     
     public func updateTitle() {
-        navigationItem.title = note?.project.label
-        
+        // Craft-style: the navigation bar names the folder the note lives in,
+        // the document itself carries its title in the content.
+        if let project = note?.project {
+            navigationItem.title = project.isDefault
+                ? NSLocalizedString("Inbox", comment: "")
+                : project.label
+        } else {
+            navigationItem.title = nil
+        }
+
         if #available(iOS 26.0, *) {
-            navigationItem.subtitle = note?.url.lastPathComponent
+            navigationItem.subtitle = nil
         }
     }
 
