@@ -312,6 +312,14 @@ extension ViewController {
         case "\(menuId).options":
             menuItem.title = NSLocalizedString("Show Options", comment: "Menu Library")
             return isFirstResponder && (projectSelected || isSystem)
+
+        case "\(menuId).color":
+            menuItem.title = NSLocalizedString("Folder Color", comment: "Menu Library")
+            return isFirstResponder && projectSelected
+
+        case "\(menuId).icon":
+            menuItem.title = NSLocalizedString("Folder Icon", comment: "Menu Library")
+            return isFirstResponder && projectSelected
         default:
             break
         }

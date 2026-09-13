@@ -19,6 +19,9 @@ class Sidebar {
 
         var system = [SidebarItem]()
 
+        // Craft-style overview landing row, always first.
+        system.append(SidebarItem(name: NSLocalizedString("Home", comment: "Sidebar"), type: .Home))
+
         if UserDefaultsManagement.sidebarVisibilityNotes {
             // Notes
             guard let defaultURL = Storage.shared().getDefault()?.url else { return }

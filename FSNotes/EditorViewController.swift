@@ -1047,24 +1047,46 @@ class EditorViewController: NSViewController, NSTextViewDelegate, NSMenuItemVali
         }
     }
     
+    /// Builds the Craft-style breadcrumb ("Folder › Note Title") shown in the title bar
+    /// while a note is open: the folder segment is de-emphasized, the title is not.
     public func updateTitle(note: Note) {
         guard let vcTitleLabel = vcTitleLabel else { return }
-        
+
         var titleString = note.getFileName()
 
         if titleString.isValidUUID {
             titleString = String()
         }
 
+        let folderLabel = note.project.getNestedLabel()
+        let plainTitle: String
+        let font = vcTitleLabel.font ?? NSFont.systemFont(ofSize: NSFont.systemFontSize)
+
         if titleString.count > 0 {
-            vcTitleLabel.stringValue = note.project.getNestedLabel() + " › " + titleString
+            plainTitle = folderLabel + " › " + titleString
+
+            let breadcrumb = NSMutableAttributedString(
+                string: folderLabel + " › ",
+                attributes: [.foregroundColor: NSColor.secondaryLabelColor, .font: font]
+            )
+            breadcrumb.append(NSAttributedString(
+                string: titleString,
+                attributes: [.foregroundColor: NSColor.labelColor, .font: font]
+            ))
+
+            vcTitleLabel.attributedStringValue = breadcrumb
         } else {
-            vcTitleLabel.stringValue = note.project.getNestedLabel()
+            plainTitle = folderLabel
+
+            vcTitleLabel.attributedStringValue = NSAttributedString(
+                string: folderLabel,
+                attributes: [.foregroundColor: NSColor.labelColor, .font: font]
+            )
         }
 
         vcTitleLabel.currentEditor()?.selectedRange = NSRange(location: 0, length: 0)
 
-        view.window?.title = vcTitleLabel.stringValue
+        view.window?.title = plainTitle
     }
     
     func refillEditArea(force: Bool = false) {

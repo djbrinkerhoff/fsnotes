@@ -10,6 +10,7 @@ import Cocoa
 import Carbon.HIToolbox
 import Foundation
 import Shout
+import SwiftUI
 import UserNotifications
 import WebKit
 
@@ -23,6 +24,14 @@ class ViewController: EditorViewController,
     // MARK: - Properties
     public var fsManager: FileSystemEventManager?
     public var projectSettingsViewController: ProjectSettingsViewController?
+
+    /// Craft-style overview canvas shown in the editor pane for Home and for any
+    /// folder/tag/search selection while no note is open.
+    public var overviewHostingView: OverviewHostingView?
+
+    /// "info.circle" button in the title bar button stack, opens the Note Info popover.
+    private var noteInfoButton: NSButton?
+    private var noteInspectorPopover: NSPopover?
 
     private var isPreLoaded = false
     
@@ -316,6 +325,7 @@ class ViewController: EditorViewController,
 
         self.shareButton.sendAction(on: .leftMouseDown)
         self.setTableRowHeight()
+        self.setupNoteInfoButton()
 
         self.sidebarOutlineView.sidebarItems = Sidebar().getList()
         self.sidebarOutlineView.reloadData()
@@ -389,7 +399,7 @@ class ViewController: EditorViewController,
     public func configureSidebar() {
         if isVisibleSidebar() {
             self.restoreSidebar()
-            
+
             if UserDefaultsManagement.lastSidebarItem != nil || UserDefaultsManagement.lastProjectURL != nil || Storage.shared().welcomeProject != nil {
                 if let welcome = Storage.shared().welcomeProject  {
                     let item = self.sidebarOutlineView.row(forItem: welcome)
@@ -408,6 +418,10 @@ class ViewController: EditorViewController,
                         self.sidebarOutlineView.selectRowIndexes([item], byExtendingSelection: false)
                     }
                 }
+            } else {
+                // Nothing restored from a previous session — land on the Craft-style
+                // Home overview instead of an arbitrary/empty selection.
+                self.sidebarOutlineView.selectSidebar(type: .Home)
             }
         }
     }
@@ -453,8 +467,201 @@ class ViewController: EditorViewController,
         vcTitleLabel = titleLabel
         vcEditorScrollView = editAreaScroll
         vcNonSelectedLabel = nonSelectedLabel
-        
+
         super.initView()
+
+        setupOverviewHostingView()
+    }
+
+    private func setupOverviewHostingView() {
+        guard let container = editAreaScroll.superview else { return }
+
+        let hostingView = OverviewHostingView(frame: .zero)
+        container.addSubview(hostingView, positioned: .above, relativeTo: editAreaScroll)
+
+        NSLayoutConstraint.activate([
+            hostingView.leadingAnchor.constraint(equalTo: editAreaScroll.leadingAnchor),
+            hostingView.trailingAnchor.constraint(equalTo: editAreaScroll.trailingAnchor),
+            hostingView.topAnchor.constraint(equalTo: editAreaScroll.topAnchor),
+            hostingView.bottomAnchor.constraint(equalTo: editAreaScroll.bottomAnchor)
+        ])
+
+        hostingView.configure(
+            onSelectNote: { [weak self] note in
+                self?.openNoteFromOverview(note)
+            },
+            onSelectProject: { [weak self] project in
+                self?.sidebarOutlineView.focus(on: project)
+            }
+        )
+
+        overviewHostingView = hostingView
+    }
+
+    private func openNoteFromOverview(_ note: Note) {
+        let currentProject = sidebarOutlineView.getSelectedProject()
+
+        if currentProject !== note.project {
+            sidebarOutlineView.select(note: note)
+        } else {
+            notesTableView.select(note: note)
+        }
+    }
+
+    /// Rebuilds and shows/hides the Craft-style overview canvas based on the current
+    /// sidebar selection and whether a note is open in the editor. Called whenever
+    /// either of those can change: after `updateTable`, from `editor.clear()`, and
+    /// from `EditTextView.fill(note:)`.
+    public func updateOverview() {
+        noteInfoButton?.isEnabled = editor?.note != nil
+
+        guard let overviewHostingView = overviewHostingView else { return }
+
+        let sidebarItem = sidebarOutlineView.item(atRow: sidebarOutlineView.selectedRow) as? SidebarItem
+        let isHome = sidebarItem?.type == .Home
+
+        if isHome {
+            let pinned = (storage.getPinned() ?? []).map { noteOverviewInput(for: $0) }
+            let recent = recentNonTrashNotes(limit: 12).map { noteOverviewInput(for: $0) }
+            let available = storage.getAvailableProjects()
+            let folders = available
+                .filter { project in
+                    // Roots: no parent, parent is the Inbox, or parent hidden from the sidebar.
+                    guard let parent = project.parent else { return true }
+                    return parent.isDefault || !available.contains(where: { $0 === parent })
+                }
+                .sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
+                .map { folderOverviewInput(for: $0) }
+
+            overviewHostingView.showHome(pinned: pinned, recent: recent, folders: folders)
+            nonSelectedLabel?.isHidden = true
+            return
+        }
+
+        if editor.note == nil {
+            let notes = notesTableView.getNoteList().map { noteOverviewInput(for: $0) }
+            let title = currentOverviewTitle()
+
+            overviewHostingView.showFolder(title: title, notes: notes)
+            nonSelectedLabel?.isHidden = true
+            return
+        }
+
+        overviewHostingView.hide()
+    }
+
+    // MARK: - Note Info popover
+
+    private func setupNoteInfoButton() {
+        guard let stack = shareButton.superview as? NSStackView else { return }
+
+        let button = NSButton()
+        button.bezelStyle = .regularSquare
+        button.isBordered = false
+        button.imagePosition = .imageOnly
+        button.image = NSImage(systemSymbolName: "info.circle", accessibilityDescription: nil)
+        button.image?.isTemplate = true
+        button.target = self
+        button.action = #selector(toggleNoteInspector(_:))
+        button.toolTip = NSLocalizedString("Note Info", comment: "")
+        button.translatesAutoresizingMaskIntoConstraints = false
+        button.isEnabled = editor?.note != nil
+
+        NSLayoutConstraint.activate([
+            button.widthAnchor.constraint(equalToConstant: 16),
+            button.heightAnchor.constraint(equalToConstant: 16)
+        ])
+
+        let insertIndex = stack.arrangedSubviews.firstIndex(of: shareButton) ?? stack.arrangedSubviews.count
+        stack.insertArrangedSubview(button, at: insertIndex)
+
+        noteInfoButton = button
+    }
+
+    @objc private func toggleNoteInspector(_ sender: NSButton) {
+        guard #available(macOS 12, *) else { return }
+        guard let note = editor.note else { return }
+
+        if let popover = noteInspectorPopover, popover.isShown {
+            popover.performClose(sender)
+            return
+        }
+
+        let content = note.content.string
+        let wordCount = content.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count
+        let charCount = content.count
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+
+        let createdLabel = note.creationDate.map { dateFormatter.string(from: $0) }
+        let modifiedLabel = dateFormatter.string(from: note.modifiedLocalAt)
+
+        let inspector = NoteInspectorView(
+            note: note,
+            folderPath: note.project.getNestedLabel(),
+            createdLabel: createdLabel,
+            modifiedLabel: modifiedLabel,
+            wordCount: wordCount,
+            charCount: charCount,
+            tags: note.tags,
+            isEncrypted: note.isEncrypted(),
+            isLocked: note.isEncryptedAndLocked(),
+            fileName: note.url.lastPathComponent,
+            onToggle: { [weak self] note in
+                self?.pin(selectedNotes: [note], toggle: true)
+            },
+            onReveal: {
+                NSWorkspace.shared.activateFileViewerSelecting([note.url])
+            }
+        )
+
+        let hostingController = NSHostingController(rootView: inspector)
+        let popover = NSPopover()
+        popover.contentViewController = hostingController
+        popover.behavior = .transient
+        popover.show(relativeTo: sender.bounds, of: sender, preferredEdge: .maxY)
+
+        noteInspectorPopover = popover
+    }
+
+    private func recentNonTrashNotes(limit: Int) -> [Note] {
+        let notes = storage.noteList.filter { !$0.isTrash() }
+        let sorted = notes.sorted { $0.modifiedLocalAt > $1.modifiedLocalAt }
+        return Array(sorted.prefix(limit))
+    }
+
+    private func currentOverviewTitle() -> String {
+        if let project = sidebarOutlineView.getSelectedProject() {
+            return project.getNestedLabel()
+        }
+
+        if let sidebarItem = sidebarOutlineView.item(atRow: sidebarOutlineView.selectedRow) as? SidebarItem {
+            return sidebarItem.name
+        }
+
+        return NSLocalizedString("Notes", comment: "")
+    }
+
+    private func noteOverviewInput(for note: Note) -> OverviewNoteItemInput {
+        OverviewNoteItemInput(
+            note: note,
+            title: note.getTitle() ?? note.getFileName(),
+            preview: note.preview,
+            dateLabel: note.getDateForLabel(),
+            isPinned: note.isPinned
+        )
+    }
+
+    private func folderOverviewInput(for project: Project) -> OverviewFolderItemInput {
+        OverviewFolderItemInput(
+            project: project,
+            title: project.label,
+            noteCount: project.getNotes().count,
+            tintColor: project.settings.folderColor?.platformColor ?? .secondaryLabelColor,
+            iconName: project.settings.folderIcon ?? FolderIcon.defaultName
+        )
     }
 
     private func configureShortcuts() {
@@ -1412,6 +1619,7 @@ class ViewController: EditorViewController,
                 // be read or mutated on the main thread.
                 if orderedNotesList == self.notesTableView.getNoteList() {
                     // Important for cleanSearchAndEditArea completion handling.
+                    self.updateOverview()
                     completion()
                     return
                 }
@@ -1423,10 +1631,11 @@ class ViewController: EditorViewController,
                 self.notesTableView.setNoteList(notes: orderedNotesList)
                 self.notesTableView.reloadData()
                 self.updateNotesCounter()
+                self.updateOverview()
                 completion()
             }
         }
-        
+
         self.searchQueue.addOperation(operation)
     }
 
@@ -1500,7 +1709,8 @@ class ViewController: EditorViewController,
                         item.type == .Untagged ||
                         item.type == .Todo ||
                         item.type == .Trash ||
-                        item.type == .Inbox {
+                        item.type == .Inbox ||
+                        item.type == .Home {
 
                         type = item.type
                     }

@@ -816,6 +816,7 @@ class EditTextView: NSTextView, NSTextFinderClient, NSSharingServicePickerDelega
         UserDefaultsManagement.lastSelectedURL = note.url
 
         editorViewController?.updateTitle(note: note)
+        viewDelegate?.updateOverview()
 
         isEditable = isEditable(note: note)
         
@@ -907,12 +908,14 @@ class EditTextView: NSTextView, NSTextFinderClient, NSSharingServicePickerDelega
             label.isHidden = false
             editorViewController?.dropTitle()
         }
-        
+
         self.note = nil
-        
+
         if let vc = viewDelegate {
             vc.updateCounters()
         }
+
+        viewDelegate?.updateOverview()
     }
 
     @IBAction func boldMenu(_ sender: Any) {

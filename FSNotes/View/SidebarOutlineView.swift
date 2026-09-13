@@ -50,17 +50,142 @@ class SidebarOutlineView: NSOutlineView,
 
         if rowView(atRow: rowIndex, makeIfNecessary: false) as? SidebarTableRowView != nil {
             window?.makeFirstResponder(self)
-            
+
             if let menu = menu {
                 menu.autoenablesItems = false
-                
+
+                updateFolderAppearanceMenuItems(in: menu, project: item(atRow: rowIndex) as? Project)
+
                 for item in menu.items {
                     item.isEnabled = vc.processLibraryMenuItems(item, menuId: "folderPopup")
                 }
-                
+
                 NSMenu.popUpContextMenu(menu, with: event, for: self)
             }
         }
+    }
+
+    // MARK: Folder color / icon context menu
+
+    private static let folderColorMenuId = NSUserInterfaceItemIdentifier("folderPopup.color")
+    private static let folderIconMenuId = NSUserInterfaceItemIdentifier("folderPopup.icon")
+
+    private final class FolderColorPayload {
+        let project: Project
+        let color: FolderColor?
+        init(project: Project, color: FolderColor?) {
+            self.project = project
+            self.color = color
+        }
+    }
+
+    private final class FolderIconPayload {
+        let project: Project
+        let icon: String?
+        init(project: Project, icon: String?) {
+            self.project = project
+            self.icon = icon
+        }
+    }
+
+    /// Injects (or removes) the "Folder Color" and "Folder Icon" submenus in the
+    /// shared `folderPopup` context menu, right before it is shown. Only Project
+    /// rows get these submenus.
+    private func updateFolderAppearanceMenuItems(in menu: NSMenu, project: Project?) {
+        menu.items.removeAll(where: {
+            $0.identifier == SidebarOutlineView.folderColorMenuId || $0.identifier == SidebarOutlineView.folderIconMenuId
+        })
+
+        guard let project = project else { return }
+
+        let colorItem = NSMenuItem(title: NSLocalizedString("Folder Color", comment: "Menu Library"), action: nil, keyEquivalent: "")
+        colorItem.identifier = SidebarOutlineView.folderColorMenuId
+        colorItem.submenu = buildFolderColorMenu(project: project)
+
+        let iconItem = NSMenuItem(title: NSLocalizedString("Folder Icon", comment: "Menu Library"), action: nil, keyEquivalent: "")
+        iconItem.identifier = SidebarOutlineView.folderIconMenuId
+        iconItem.submenu = buildFolderIconMenu(project: project)
+
+        if let optionsIndex = menu.items.firstIndex(where: { $0.identifier?.rawValue == "folderPopup.options" }) {
+            menu.insertItem(colorItem, at: optionsIndex)
+            menu.insertItem(iconItem, at: optionsIndex + 1)
+        } else {
+            menu.addItem(colorItem)
+            menu.addItem(iconItem)
+        }
+    }
+
+    private func circleImage(color: NSColor, diameter: CGFloat = 12) -> NSImage {
+        let image = NSImage(size: NSSize(width: diameter, height: diameter))
+        image.lockFocus()
+        color.setFill()
+        NSBezierPath(ovalIn: NSRect(x: 0, y: 0, width: diameter, height: diameter)).fill()
+        image.unlockFocus()
+        return image
+    }
+
+    private func buildFolderColorMenu(project: Project) -> NSMenu {
+        let menu = NSMenu()
+
+        let noneItem = NSMenuItem(title: NSLocalizedString("None", comment: "Folder color"), action: #selector(selectFolderColor(_:)), keyEquivalent: "")
+        noneItem.target = self
+        noneItem.image = NSImage(systemSymbolName: "circle.slash", accessibilityDescription: nil)
+        noneItem.state = project.settings.folderColor == nil ? .on : .off
+        noneItem.representedObject = FolderColorPayload(project: project, color: nil)
+        menu.addItem(noneItem)
+
+        for color in FolderColor.allCases {
+            let item = NSMenuItem(title: color.title, action: #selector(selectFolderColor(_:)), keyEquivalent: "")
+            item.target = self
+            item.image = circleImage(color: color.platformColor)
+            item.state = project.settings.folderColor == color ? .on : .off
+            item.representedObject = FolderColorPayload(project: project, color: color)
+            menu.addItem(item)
+        }
+
+        return menu
+    }
+
+    private func buildFolderIconMenu(project: Project) -> NSMenu {
+        let menu = NSMenu()
+
+        let defaultItem = NSMenuItem(title: NSLocalizedString("Default", comment: "Folder icon"), action: #selector(selectFolderIcon(_:)), keyEquivalent: "")
+        defaultItem.target = self
+        defaultItem.image = sidebarSymbolImage(named: FolderIcon.defaultName)
+        defaultItem.state = project.settings.folderIcon == nil ? .on : .off
+        defaultItem.representedObject = FolderIconPayload(project: project, icon: nil)
+        menu.addItem(defaultItem)
+
+        for icon in FolderIcon.choices {
+            let item = NSMenuItem(title: icon, action: #selector(selectFolderIcon(_:)), keyEquivalent: "")
+            item.target = self
+            item.image = sidebarSymbolImage(named: icon)
+            item.state = project.settings.folderIcon == icon ? .on : .off
+            item.representedObject = FolderIconPayload(project: project, icon: icon)
+            menu.addItem(item)
+        }
+
+        return menu
+    }
+
+    @objc private func selectFolderColor(_ sender: NSMenuItem) {
+        guard let payload = sender.representedObject as? FolderColorPayload else { return }
+
+        payload.project.settings.folderColor = payload.color
+        payload.project.saveSettings()
+
+        reloadItem(payload.project)
+        ViewController.shared()?.updateOverview()
+    }
+
+    @objc private func selectFolderIcon(_ sender: NSMenuItem) {
+        guard let payload = sender.representedObject as? FolderIconPayload else { return }
+
+        payload.project.settings.folderIcon = payload.icon
+        payload.project.saveSettings()
+
+        reloadItem(payload.project)
+        ViewController.shared()?.updateOverview()
     }
 
     override func draw(_ dirtyRect: NSRect) {
@@ -491,6 +616,7 @@ class SidebarOutlineView: NSOutlineView,
         let cell = outlineView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "DataCell"), owner: self) as! SidebarCellView
 
         cell.icon.contentTintColor = NSColor.controlAccentColor
+        cell.customTint = nil
 
         if let tag = item as? FSTag {
             cell.type = .Tag
@@ -510,12 +636,14 @@ class SidebarOutlineView: NSOutlineView,
                     cell.type = .ProjectEncryptedUnlocked
                     cell.icon.image = sidebarSymbolImage(named: SidebarItemType.ProjectEncryptedUnlocked.systemImage ?? "lock.open.fill")
                 }
+                cell.icon.contentTintColor = .secondaryLabelColor
             } else {
                 cell.type = .Project
-                cell.icon.image = sidebarSymbolImage(named: SidebarItemType.Project.systemImage ?? "folder")
+                let iconName = project.settings.folderIcon ?? SidebarItemType.Project.systemImage ?? "folder"
+                cell.icon.image = sidebarSymbolImage(named: iconName)
+                cell.customTint = project.settings.folderColor?.platformColor ?? .secondaryLabelColor
             }
 
-            cell.icon.contentTintColor = .secondaryLabelColor
             cell.icon.isHidden = false
             cell.label.frame.origin.x = 25
             cell.textField?.stringValue = project.label

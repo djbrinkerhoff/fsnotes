@@ -17,6 +17,12 @@ class SidebarCellView: NSTableCellView {
     }
     public var storage = Storage.shared()
 
+    /// Per-folder accent color (Craft-style folder color), when set overrides the
+    /// default type-based tint below.
+    public var customTint: NSColor? {
+        didSet { updateIconTint() }
+    }
+
     /// Craft-style tint: accent for system rows, neutral for folders and tags,
     /// white while the row is drawn on the emphasized selection pill.
     override var backgroundStyle: NSView.BackgroundStyle {
@@ -28,6 +34,11 @@ class SidebarCellView: NSTableCellView {
 
         if backgroundStyle == .emphasized {
             icon.contentTintColor = .white
+            return
+        }
+
+        if let customTint = customTint {
+            icon.contentTintColor = customTint
             return
         }
 
