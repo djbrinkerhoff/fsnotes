@@ -31,6 +31,38 @@ class NoteCellView: SwipeTableViewCell {
         }
     }
 
+    private var didConfigureSelectionBackground = false
+
+    override func awakeFromNib() {
+        super.awakeFromNib()
+
+        configureSelectionBackground()
+    }
+
+    private func configureSelectionBackground() {
+        guard !didConfigureSelectionBackground else { return }
+        didConfigureSelectionBackground = true
+
+        let background = UIView()
+        background.backgroundColor = UIColor.secondarySystemFill
+        background.layer.cornerRadius = 10
+        background.layer.masksToBounds = true
+
+        let container = UIView()
+        container.backgroundColor = .clear
+        container.addSubview(background)
+        background.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            background.topAnchor.constraint(equalTo: container.topAnchor),
+            background.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            background.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
+            background.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8)
+        ])
+
+        selectedBackgroundView = container
+    }
+
     override func prepareForReuse() {
         super.prepareForReuse()
 
@@ -57,38 +89,45 @@ class NoteCellView: SwipeTableViewCell {
     func configure(note: Note) {
         self.note = note
 
+        configureSelectionBackground()
+
         date.attributedText = NSAttributedString(string: getDate())
-        preview.textColor = UIColor.previewColor
+
+        let symbolConfig = UIImage.SymbolConfiguration(pointSize: 15, weight: .medium)
+        pin.contentMode = .scaleAspectFit
+        pin.isHidden = false
 
         if note.isPublished() {
-            pin.image = UIImage(systemName: "globe")
-            pin.isHidden = false
+            pin.image = UIImage(systemName: "globe", withConfiguration: symbolConfig)
+            pin.tintColor = UIColor.mainTheme
         } else if note.isEncrypted() {
             let name = note.isUnlocked() ? "lock.open" : "lock"
-            pin.contentMode = .scaleAspectFit
-            pin.image = UIImage(systemName: name)
-            pin.isHidden = false
+            pin.image = UIImage(systemName: name, withConfiguration: symbolConfig)
+            pin.tintColor = UIColor.mainTheme
+        } else if note.isPinned {
+            pin.image = UIImage(systemName: "pin.fill", withConfiguration: symbolConfig)
+            pin.tintColor = UIColor.mainTheme
         } else {
-            pin.image = UIImage(systemName: "pin")
-            pin.isHidden = !note.isPinned
+            pin.image = UIImage(systemName: "doc.text", withConfiguration: symbolConfig)
+            pin.tintColor = .secondaryLabel
         }
 
-        pin.tintColor = UIColor.mainTheme
-
-        let font = UIFont.systemFont(ofSize: CGFloat(UserDefaultsManagement.DefaultFontSize), weight: .semibold)
-        let fontMetrics = UIFontMetrics(forTextStyle: .title1)
+        let font = UIFont.systemFont(ofSize: 16, weight: .semibold)
+        let fontMetrics = UIFontMetrics(forTextStyle: .headline)
         let scaledFont = fontMetrics.scaledFont(for: font)
         title.font = scaledFont
 
-        let dateFont = UIFont.systemFont(ofSize: CGFloat(UserDefaultsManagement.DefaultFontSize - 2), weight: .regular)
-        let dateFontMetrics = UIFontMetrics(forTextStyle: .title3)
+        let dateFont = UIFont.systemFont(ofSize: 13, weight: .regular)
+        let dateFontMetrics = UIFontMetrics(forTextStyle: .footnote)
         let dateScaledFont = dateFontMetrics.scaledFont(for: dateFont)
         date.font = dateScaledFont
+        date.textColor = .tertiaryLabel
 
-        let previewFont = UIFont.systemFont(ofSize: CGFloat(UserDefaultsManagement.DefaultFontSize - 2), weight: .regular)
-        let previewFontMetrics = UIFontMetrics(forTextStyle: .title3)
+        let previewFont = UIFont.systemFont(ofSize: 15, weight: .regular)
+        let previewFontMetrics = UIFontMetrics(forTextStyle: .subheadline)
         let previewScaledFont = previewFontMetrics.scaledFont(for: previewFont)
         preview.font = previewScaledFont
+        preview.textColor = .secondaryLabel
     }
 
     public func getDate() -> String {

@@ -12,8 +12,34 @@ class SidebarCellView: NSTableCellView {
     @IBOutlet weak var icon: NSImageView!
     @IBOutlet weak var label: NSTextField!
 
-    public var type: SidebarItemType?
+    public var type: SidebarItemType? {
+        didSet { updateIconTint() }
+    }
     public var storage = Storage.shared()
+
+    /// Craft-style tint: accent for system rows, neutral for folders and tags,
+    /// white while the row is drawn on the emphasized selection pill.
+    override var backgroundStyle: NSView.BackgroundStyle {
+        didSet { updateIconTint() }
+    }
+
+    private func updateIconTint() {
+        guard let icon = icon else { return }
+
+        if backgroundStyle == .emphasized {
+            icon.contentTintColor = .white
+            return
+        }
+
+        switch type {
+        case .Project, .ProjectEncryptedLocked, .ProjectEncryptedUnlocked, .Tag:
+            icon.contentTintColor = .secondaryLabelColor
+        case .none:
+            icon.contentTintColor = .controlAccentColor
+        default:
+            icon.contentTintColor = .controlAccentColor
+        }
+    }
 
     @IBAction func projectName(_ sender: NSTextField) {
         let cell = sender.superview as? SidebarCellView

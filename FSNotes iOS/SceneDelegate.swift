@@ -27,14 +27,25 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         window = UIWindow(windowScene: windowScene)
 
-        let nav = MainNavigationController(rootViewController: listController)
+        let root: UIViewController = ViewController.usesHomeNavigation
+            ? HomeViewController()
+            : listController
+
+        let nav = MainNavigationController(rootViewController: root)
         nav.setNavigationBarHidden(false, animated: false)
+        nav.navigationBar.prefersLargeTitles = ViewController.usesHomeNavigation
         mainController = nav
 
         window?.rootViewController = nav
         window?.makeKeyAndVisible()
 
         editorController.loadViewIfNeeded()
+
+        // The list controller owns storage loading, iCloud sync and git; keep it
+        // alive and let it start working even though Home is on screen.
+        if ViewController.usesHomeNavigation {
+            listController.loadViewIfNeeded()
+        }
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self else { return }
@@ -103,8 +114,13 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         if url.host == "open" {
             if let tag = url["tag"]?.removingPercentEncoding {
-                vc.sidebarTableView.select(tag: tag)
-                mainController?.popToRootViewController(animated: true)
+                if ViewController.usesHomeNavigation {
+                    mainController?.popToRootViewController(animated: false)
+                    vc.showLibrary(tag: tag)
+                } else {
+                    vc.sidebarTableView.select(tag: tag)
+                    mainController?.popToRootViewController(animated: true)
+                }
                 return
             }
         }

@@ -839,6 +839,11 @@
 		D7FDA4F7236DBC6900C3B4AA /* Sidebar.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7FDA4F6236DBC6900C3B4AA /* Sidebar.swift */; };
 		D7FFD09C1FF677ED0064CBA6 /* NotesTextProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7F95F391FF2759300E2A447 /* NotesTextProcessor.swift */; };
 		CC2A1A47B0334302AA1A8B52 /* LibraryNotifications.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D21219378E147E78241CA8E /* LibraryNotifications.swift */; };
+		ADCC79F3547A439F93D40641 /* EditorViewController+Blocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E976227519F462CBCF24C1D /* EditorViewController+Blocks.swift */; };
+		09655FBE6708480EB9A6AFEA /* HomeLibraryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C717A5DB242DBA84A67AB /* HomeLibraryModel.swift */; };
+		F22C12914DAF4CF0B06BDA0B /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F37671A727B14FC49DA3F819 /* HomeView.swift */; };
+		3FB88B3B649A4AA58A3D68C9 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30D79CF39354ED29B06AAA7 /* HomeViewController.swift */; };
+		7C6F548BAA6F463FA06BC86C /* ViewController+Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF858643A124FCBA382F4AF /* ViewController+Home.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1272,6 +1277,11 @@
 		D7FB716B2BE7F66500808E56 /* EditorViewController+QuickLook.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorViewController+QuickLook.swift"; sourceTree = "<group>"; };
 		D7FDA4F6236DBC6900C3B4AA /* Sidebar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sidebar.swift; sourceTree = "<group>"; };
 		0D21219378E147E78241CA8E /* LibraryNotifications.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryNotifications.swift; sourceTree = "<group>"; };
+		7E976227519F462CBCF24C1D /* EditorViewController+Blocks.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EditorViewController+Blocks.swift"; sourceTree = "<group>"; };
+		309C717A5DB242DBA84A67AB /* HomeLibraryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeLibraryModel.swift; sourceTree = "<group>"; };
+		F37671A727B14FC49DA3F819 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		E30D79CF39354ED29B06AAA7 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
+		6AF858643A124FCBA382F4AF /* ViewController+Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+Home.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1342,6 +1352,7 @@
 		11598D9F2EDCB85F0036E387 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
+				309C717A5DB242DBA84A67AB /* HomeLibraryModel.swift */,
 				0D21219378E147E78241CA8E /* LibraryNotifications.swift */,
 				D7CBAFFD214D5A1C002ECD5A /* ShortcutIdentifier.swift */,
 				D78115622153B36C004FA1CA /* Buttons.swift */,
@@ -1731,6 +1742,8 @@
 		D7679387201F21F5000F7BBF /* FSNotes iOS */ = {
 			isa = PBXGroup;
 			children = (
+				6AF858643A124FCBA382F4AF /* ViewController+Home.swift */,
+				7E976227519F462CBCF24C1D /* EditorViewController+Blocks.swift */,
 				11C23F022EDC486E0064C5B5 /* Icons */,
 				D7F6CFEE2056ABDB008C584A /* Preferences */,
 				D7ED3FFC20CD0ADE001438EE /* Extensions */,
@@ -1924,6 +1937,8 @@
 		D7ED3FFB20CD0AA3001438EE /* View */ = {
 			isa = PBXGroup;
 			children = (
+				E30D79CF39354ED29B06AAA7 /* HomeViewController.swift */,
+				F37671A727B14FC49DA3F819 /* HomeView.swift */,
 				D7BDFE6B201F6DC200897A58 /* EditTextView.swift */,
 				D7BDFE69201F68B700897A58 /* NotesTableView.swift */,
 				D7D9503C209D806F001FB60B /* SidebarTableView.swift */,
@@ -2432,6 +2447,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				7C6F548BAA6F463FA06BC86C /* ViewController+Home.swift in Sources */,
+				3FB88B3B649A4AA58A3D68C9 /* HomeViewController.swift in Sources */,
+				F22C12914DAF4CF0B06BDA0B /* HomeView.swift in Sources */,
+				09655FBE6708480EB9A6AFEA /* HomeLibraryModel.swift in Sources */,
+				ADCC79F3547A439F93D40641 /* EditorViewController+Blocks.swift in Sources */,
 				CC2A1A47B0334302AA1A8B52 /* LibraryNotifications.swift in Sources */,
 				D70E9E012901AEB600A3C634 /* DiffEntry.swift in Sources */,
 				D70E9DF42901AEA800A3C634 /* Commit.swift in Sources */,

@@ -408,7 +408,7 @@ class SidebarOutlineView: NSOutlineView,
     func outlineView(_ outlineView: NSOutlineView, heightOfRowByItem item: Any) -> CGFloat {
         if let si = item as? SidebarItem {
             if si.type == .Separator {
-                return 15
+                return 28
             }
 
             if si.type == .Header {
@@ -416,7 +416,7 @@ class SidebarOutlineView: NSOutlineView,
             }
         }
 
-        return 25
+        return 28
     }
     
     func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
@@ -451,7 +451,42 @@ class SidebarOutlineView: NSOutlineView,
         return item
     }
 
+    private static let sidebarSymbolConfiguration = NSImage.SymbolConfiguration(pointSize: 14, weight: .medium)
+
+    /// Builds a template SF Symbol image sized/weighted for the Craft-style sidebar.
+    private func sidebarSymbolImage(named name: String) -> NSImage? {
+        guard let image = NSImage(systemSymbolName: name, accessibilityDescription: nil) else { return nil }
+
+        let configured = image.withSymbolConfiguration(SidebarOutlineView.sidebarSymbolConfiguration) ?? image
+        configured.isTemplate = true
+
+        return configured
+    }
+
     func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+
+        if let si = item as? SidebarItem, si.type == .Separator {
+            let headerCell = outlineView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "HeaderCell"), owner: self) as! SidebarHeaderCellView
+
+            let title: String
+            switch si.name {
+            case "projects":
+                title = NSLocalizedString("Folders", comment: "Sidebar section")
+            case "tags":
+                title = NSLocalizedString("Tags", comment: "Sidebar section")
+            default:
+                title = ""
+            }
+
+            headerCell.icon.image = nil
+            headerCell.icon.isHidden = true
+            headerCell.label.frame.origin.x = 2
+            headerCell.label.font = NSFont.systemFont(ofSize: 11, weight: .semibold)
+            headerCell.label.textColor = .secondaryLabelColor
+            headerCell.label.stringValue = title.uppercased()
+
+            return headerCell
+        }
 
         let cell = outlineView.makeView(withIdentifier: NSUserInterfaceItemIdentifier(rawValue: "DataCell"), owner: self) as! SidebarCellView
 
@@ -459,11 +494,8 @@ class SidebarOutlineView: NSOutlineView,
 
         if let tag = item as? FSTag {
             cell.type = .Tag
-
-            let image = NSImage(named: "sidebar_tag")
-            image?.isTemplate = true
-
-            cell.icon.image = image
+            cell.icon.image = sidebarSymbolImage(named: SidebarItemType.Tag.systemImage ?? "number")
+            cell.icon.contentTintColor = .secondaryLabelColor
             cell.icon.isHidden = false
             cell.label.frame.origin.x = 25
             cell.textField?.stringValue = tag.getName()
@@ -473,44 +505,34 @@ class SidebarOutlineView: NSOutlineView,
             if project.isEncrypted {
                 if project.isLocked() {
                     cell.type = .ProjectEncryptedLocked
-
-                    let image = NSImage(named: "sidebar_project_encrypted_locked")
-                    image?.isTemplate = true
-
-                    cell.icon.image = image
+                    cell.icon.image = sidebarSymbolImage(named: SidebarItemType.ProjectEncryptedLocked.systemImage ?? "lock.fill")
                 } else {
                     cell.type = .ProjectEncryptedUnlocked
-
-                    let image = NSImage(named: "sidebar_project_encrypted_unlocked")
-                    image?.isTemplate = true
-
-                    cell.icon.image = image
+                    cell.icon.image = sidebarSymbolImage(named: SidebarItemType.ProjectEncryptedUnlocked.systemImage ?? "lock.open.fill")
                 }
             } else {
                 cell.type = .Project
-
-                let image = NSImage(named: "sidebar_project")
-                image?.isTemplate = true
-
-                cell.icon.image = image
+                cell.icon.image = sidebarSymbolImage(named: SidebarItemType.Project.systemImage ?? "folder")
             }
-            
+
+            cell.icon.contentTintColor = .secondaryLabelColor
             cell.icon.isHidden = false
             cell.label.frame.origin.x = 25
             cell.textField?.stringValue = project.label
 
         } else if let si = item as? SidebarItem {
-            let name = si.type == .Separator ? "" : si.name
-            
+            let name = si.name
+
             cell.textField?.stringValue = name
             cell.type = si.type
 
-            if let name = si.type.icon, let image = si.getIcon(name: name) {
-                cell.icon.image = image
+            if let symbolName = si.type.systemImage {
+                cell.icon.image = sidebarSymbolImage(named: symbolName)
             } else {
                 cell.icon.image = nil
             }
 
+            cell.icon.contentTintColor = .controlAccentColor
             cell.icon.isHidden = false
             cell.label.frame.origin.x = 25
 
@@ -1501,7 +1523,8 @@ class SidebarOutlineView: NSOutlineView,
             guard i > -1 else { continue }
 
             if let row = self.rowView(atRow: i, makeIfNecessary: false), let cell = row.view(atColumn: 0) as? SidebarCellView {
-                cell.icon.image = NSImage(named: "sidebar_tag")
+                cell.icon.image = sidebarSymbolImage(named: SidebarItemType.Tag.systemImage ?? "number")
+                cell.icon.contentTintColor = .secondaryLabelColor
             }
         }
     }

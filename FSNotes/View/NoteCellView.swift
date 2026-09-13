@@ -70,10 +70,13 @@ class NoteCellView: NSTableCellView {
         renderPin()
         name.layer?.zPosition = 1000
 
+        applyTitleStyle()
+
         if let descriptor = date.font?.fontDescriptor {
             date.font = NSFont.init(descriptor: descriptor, size: 11)
         }
 
+        date.textColor = .tertiaryLabelColor
         date.layer?.cornerRadius = 5
         date.layer?.zPosition = 1001
         date.isHidden = UserDefaultsManagement.hideDate
@@ -102,7 +105,18 @@ class NoteCellView: NSTableCellView {
     public func configure(note: Note) {
         self.note = note
     }
-    
+
+    /// Craft-style title: semibold, 13pt by default. If the user picked a custom
+    /// note font, keep that family/size but bump the weight to semibold/bold
+    /// instead of overriding it with the system font.
+    private func applyTitleStyle() {
+        if UserDefaultsManagement.fontName != nil {
+            name.font = NSFontManager.shared.convert(UserDefaultsManagement.noteFont, toHaveTrait: .boldFontMask)
+        } else {
+            name.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        }
+    }
+
     func applyPreviewStyle() {
         let additionalHeight = CGFloat(UserDefaultsManagement.cellSpacing)
 
@@ -173,9 +187,10 @@ class NoteCellView: NSTableCellView {
         textParagraph.lineSpacing = previewLineSpacing
         textParagraph.maximumLineHeight = previewMaximumLineHeight
 
-        let attribs = [
-            NSAttributedString.Key.font: font,
-            NSAttributedString.Key.paragraphStyle: textParagraph
+        let attribs: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .paragraphStyle: textParagraph,
+            .foregroundColor: NSColor.secondaryLabelColor
         ]
 
         if maximumNumberOfLines > 0 {

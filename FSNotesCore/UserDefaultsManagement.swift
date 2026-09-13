@@ -671,7 +671,11 @@ public class UserDefaultsManagement {
             if let result = shared?.object(forKey: Constants.LineWidthKey) as? Float {
                 return result
             }
-            return 1000
+
+            // Craft-style centered editor column by default (macOS only).
+            // Users can still drag the "Line Width" slider up to 1000, which
+            // is treated as "unlimited" by EditTextView.getInsetWidth().
+            return 760
         }
         set {
             shared?.set(newValue, forKey: Constants.LineWidthKey)

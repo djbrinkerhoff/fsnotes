@@ -21,6 +21,28 @@ class NotesTableView: UITableView,
     var viewDelegate: ViewController? = nil
     public var selectedIndexPaths: [IndexPath]?
 
+    private var didConfigureSeparatorStyle = false
+
+    override func awakeFromNib() {
+        super.awakeFromNib()
+
+        configureSeparatorStyleIfNeeded()
+    }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+
+        configureSeparatorStyleIfNeeded()
+    }
+
+    private func configureSeparatorStyleIfNeeded() {
+        guard !didConfigureSeparatorStyle else { return }
+        didConfigureSeparatorStyle = true
+
+        separatorInset = UIEdgeInsets(top: 0, left: 56, bottom: 0, right: 16)
+        separatorColor = .separator
+    }
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return notes.count
     }
@@ -220,6 +242,7 @@ class NotesTableView: UITableView,
             self.notes = resorted
             self.reloadRows(at: [newIndexPath], with: .automatic)
             self.reloadRows(at: [indexPath], with: .automatic)
+            LibraryNotifier.libraryDidChange()
             completion(true)
         }
         pinAction.image = note.isPinned ? UIImage(systemName: "pin.slash") : UIImage(systemName: "pin")
@@ -621,6 +644,8 @@ class NotesTableView: UITableView,
         
         vc.updateNotesCounter()
         vc.sidebarTableView.delete(tags: tags)
+
+        LibraryNotifier.libraryDidChange()
     }
 
     public func insertRows(notes: [Note]) {
@@ -654,6 +679,8 @@ class NotesTableView: UITableView,
         beginUpdates()
         insertRows(at: indexPaths, with: .fade)
         endUpdates()
+
+        LibraryNotifier.libraryDidChange()
     }
 
     public func reloadRows(notes: [Note], resetKeys: Bool = false) {
@@ -768,6 +795,8 @@ class NotesTableView: UITableView,
         DispatchQueue.main.async {
             self.reloadRows(notes: [note])
         }
+
+        LibraryNotifier.libraryDidChange()
     }
 
     public func removeAction(notes: [Note]) {
@@ -1203,10 +1232,12 @@ class NotesTableView: UITableView,
             rowsToReload.append(IndexPath(row: to, section: 0))
         }
         endUpdates()
-        
+
         if !rowsToReload.isEmpty {
             reloadRows(at: rowsToReload, with: .none)
         }
+
+        LibraryNotifier.libraryDidChange()
     }
 
     public func removePins(notes unpinned: [Note]) {
@@ -1236,10 +1267,12 @@ class NotesTableView: UITableView,
         }
 
         endUpdates()
-        
+
         if !rowsToReload.isEmpty {
             reloadRows(at: rowsToReload, with: .none)
         }
+
+        LibraryNotifier.libraryDidChange()
     }
 
     public func scrollTo(note: Note) {

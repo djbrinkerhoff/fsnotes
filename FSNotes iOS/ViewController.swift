@@ -141,6 +141,11 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
         scheduledGitPull()
 
         disableLockedProject()
+
+        if Self.usesHomeNavigation {
+            UserDefaultsManagement.sidebarIsOpened = false
+        }
+
         loadSidebar()
 
         loadNotches()
@@ -225,10 +230,12 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
         self.metadataQueue.qualityOfService = .userInteractive
         self.indicator = UIActivityIndicatorView(style: UIActivityIndicatorView.Style.large)
 
-        navigationItem.leftBarButtonItems = [
-            UIBarButtonItem(systemImageName: "sidebar.left", target: self, selector: #selector(openSidebar)),
-            UIBarButtonItem(systemImageName: "gear", target: self, selector: #selector(openSettings))
-        ]
+        if !Self.usesHomeNavigation {
+            navigationItem.leftBarButtonItems = [
+                UIBarButtonItem(systemImageName: "sidebar.left", target: self, selector: #selector(openSidebar)),
+                UIBarButtonItem(systemImageName: "gear", target: self, selector: #selector(openSettings))
+            ]
+        }
 
         setNavTitle(folder: NSLocalizedString("Inbox", comment: ""))
         
@@ -311,6 +318,8 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
     }
 
     public func configureGestures() {
+        guard !Self.usesHomeNavigation else { return }
+
         let swipe = UIPanGestureRecognizer(target: self, action: #selector(handleSidebarSwipe))
         swipe.minimumNumberOfTouches = 1
         swipe.delegate = self
@@ -405,8 +414,13 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
             break
         case ShortcutIdentifier.search.type:
             self.loadViewIfNeeded()
-            self.enableSearchFocus()
-            self.popViewController()
+            if Self.usesHomeNavigation {
+                UIApplication.getNC()?.popToRootViewController(animated: false)
+                self.showSearchFromHome()
+            } else {
+                self.enableSearchFocus()
+                self.popViewController()
+            }
             self.loadSearchController()
             break
         default:
@@ -512,6 +526,7 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
                 // enable iCloud Drive updates after projects structure formalized
                 self.cloudDriveManager?.metadataQuery.enableUpdates()
                 self.isLoadedDB = true
+                LibraryNotifier.libraryDidChange()
 
                 self.gitQueue.isSuspended = false
             }
@@ -667,9 +682,10 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
     }
 
     @objc public func openSettings() {
-        navigationController?.interactivePopGestureRecognizer?.delegate = nil
+        guard let nav = navigationController ?? UIApplication.getNC() else { return }
 
-        navigationController?.pushViewController(SettingsViewController(), animated: true)
+        nav.interactivePopGestureRecognizer?.delegate = nil
+        nav.pushViewController(SettingsViewController(), animated: true)
     }
 
     @objc func ubiquitousKeyValueStoreDidChange(_ notification: NSNotification) {
@@ -1029,24 +1045,24 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
     }
 
     public func openEditorViewController() {
-        navigationController?.interactivePopGestureRecognizer?.delegate = nil
+        guard let nav = navigationController ?? UIApplication.getNC() else { return }
 
-        if let controllers = navigationController?.viewControllers {
-            for controller in controllers {
-                if let _ = controller as? EditorViewController {
-                    return
-                }
+        nav.interactivePopGestureRecognizer?.delegate = nil
+
+        for controller in nav.viewControllers {
+            if let _ = controller as? EditorViewController {
+                return
             }
         }
 
         let evc = UIApplication.getEVC()
         editorViewController = evc
-        
-        navigationController?.pushViewController(evc, animated: true)
+
+        nav.pushViewController(evc, animated: true)
     }
 
     public func popViewController() {
-        navigationController?.popViewController(animated: true)
+        (navigationController ?? UIApplication.getNC())?.popViewController(animated: true)
     }
 
     public func savePasteboard(note: Note) {

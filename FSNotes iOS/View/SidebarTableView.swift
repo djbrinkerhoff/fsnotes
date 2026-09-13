@@ -591,6 +591,7 @@ class SidebarTableView: UITableView,
     public func insert(tags: [String]) {
         let newTags = Set(tags).subtracting(allTagNames)
         guard !newTags.isEmpty else { return }
+        defer { LibraryNotifier.libraryDidChange() }
 
         allTagNames.formUnion(newTags)
         rebuildTagItems()
@@ -727,6 +728,7 @@ class SidebarTableView: UITableView,
     }
 
     public func insertRows(projects: [Project]) {
+        defer { LibraryNotifier.libraryDidChange() }
         guard sidebar.items.indices.contains(1) else { return }
 
         var selectedProject: Project?
@@ -775,6 +777,7 @@ class SidebarTableView: UITableView,
 
     
     public func removeRows(projects: [Project]) {
+        defer { LibraryNotifier.libraryDidChange() }
         guard let vc = viewController else { return }
 
         let toDelete: [Project] = projects.flatMap { [$0] + $0.getChildProjectsByURL() }
@@ -837,6 +840,7 @@ class SidebarTableView: UITableView,
     public func reloadSidebar() {
         sidebar = Sidebar()
         reloadData()
+        LibraryNotifier.libraryDidChange()
 
         var indexPath = IndexPath(row: 0, section: 0)
 
