@@ -48,6 +48,16 @@ class NotesTableView: UITableView,
         separatorColor = .separator
     }
 
+    /// The list controller sets `displayMode` and then calls `reloadData()`
+    /// to apply it; picking up the separator style change here (rather than
+    /// in a property observer) keeps the "when it takes effect" contract
+    /// simple: it always matches what's about to be redrawn.
+    override func reloadData() {
+        separatorStyle = displayMode == .cards ? .none : .singleLine
+
+        super.reloadData()
+    }
+
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         return notes.count
     }
@@ -73,27 +83,86 @@ class NotesTableView: UITableView,
     }
 
     private func calcHeight(indexPath: IndexPath) -> CGFloat {
-        if notes.indices.contains(indexPath.row) {
-            let note = notes[indexPath.row]
+        guard notes.indices.contains(indexPath.row) else { return 75 }
+        let note = notes[indexPath.row]
 
-            if let urls = note.imageUrl, urls.count > 0 {
-                if note.preview.count == 0 {
-                    if note.getTitle() != nil {
+        switch displayMode {
+        case .compact:
+            // Single-line title + date, no preview, no image previews.
+            return 52
+        case .cards:
+            return calcCardsHeight(note: note)
+        case .list:
+            break
+        }
 
-                        // Title + image
-                        return 132
-                    }
+        if let urls = note.imageUrl, urls.count > 0 {
+            if note.preview.count == 0 {
+                if note.getTitle() != nil {
 
-                    // Images only
-                    return 120
+                    // Title + image
+                    return 132
                 }
 
-                // Title + Prevew + Images
-                return 160
+                // Images only
+                return 120
             }
+
+            // Title + Prevew + Images
+            return 160
         }
 
         return 75
+    }
+
+    /// Craft-like card height: the `.list` baseline (title + one preview
+    /// line + paddings) already reserves room for a title/preview pair, so
+    /// we start from it and add the card's own vertical inset, any
+    /// additional preview lines (up to 3, measured from the actual font so
+    /// Dynamic Type is respected) and the image preview row when present.
+    private func calcCardsHeight(note: Note) -> CGFloat {
+        let cardVerticalInset: CGFloat = 12 // 6pt top + 6pt bottom card inset
+        let imageRowExtra: CGFloat = 85     // 70pt thumbnail + top gap + slack
+
+        var height: CGFloat = 75 + cardVerticalInset
+
+        let previewText = note.preview.trim()
+        if previewText.count > 0 {
+            let previewFont = UIFontMetrics(forTextStyle: .subheadline)
+                .scaledFont(for: UIFont.systemFont(ofSize: 15, weight: .regular))
+
+            let lines = previewLineCount(for: previewText, font: previewFont, maxLines: 3)
+            if lines > 1 {
+                let lineHeight = ceil(previewFont.lineHeight)
+                height += CGFloat(lines - 1) * lineHeight
+            }
+        }
+
+        if let urls = note.imageUrl, urls.count > 0 {
+            height += imageRowExtra
+        }
+
+        return height
+    }
+
+    /// Measures how many lines `text` needs at `font` inside the card's
+    /// text column (contentView width minus the label's leading/trailing
+    /// insets), capped at `maxLines`.
+    private func previewLineCount(for text: String, font: UIFont, maxLines: Int) -> Int {
+        let horizontalInsets: CGFloat = 30 + 25 // matches NoteCellView's preview label insets
+        let width = max(bounds.width - horizontalInsets, 100)
+
+        let constraintSize = CGSize(width: width, height: .greatestFiniteMagnitude)
+        let attributes: [NSAttributedString.Key: Any] = [.font: font]
+        let boundingRect = (text as NSString).boundingRect(
+            with: constraintSize,
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attributes,
+            context: nil
+        )
+
+        let lines = Int(ceil(boundingRect.height / font.lineHeight))
+        return min(max(lines, 1), maxLines)
     }
     
     func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
@@ -109,10 +178,18 @@ class NotesTableView: UITableView,
             note.uiLoad()
         }
         
+        cell.displayMode = displayMode
         cell.configure(note: note)
         cell.selectionStyle = .gray
-        cell.loadImagesPreview(position: indexPath.row)
+
+        if displayMode == .compact {
+            cell.hideAllImagePreviews()
+        } else {
+            cell.loadImagesPreview(position: indexPath.row)
+        }
+
         cell.attachHeaders(note: note)
+        cell.applyDisplayMode(displayMode)
 
         return cell
     }

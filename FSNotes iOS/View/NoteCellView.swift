@@ -25,18 +25,144 @@ class NoteCellView: SwipeTableViewCell {
 
     public var imageKeys = [String]()
 
+    /// Craft-style "Display as" mode this cell is currently laid out for.
+    /// Set by `NotesTableView.cellForRowAt` before `configure`/`fill` runs.
+    public var displayMode: NoteListDisplayMode = .list
+
     public var tableView: NotesTableView? {
         get {
             return self.superview as? NotesTableView
         }
     }
 
+    /// Craft-like card background shown behind the labels in `.cards` mode.
+    /// Created once and toggled via `isHidden` rather than added/removed.
+    private var cardView: UIView!
+
     private var didConfigureSelectionBackground = false
+    private var didConfigureCardView = false
 
     override func awakeFromNib() {
         super.awakeFromNib()
 
         configureSelectionBackground()
+        configureCardViewIfNeeded()
+    }
+
+    override func traitCollectionDidChange(_ previousTraitCollection: UITraitCollection?) {
+        super.traitCollectionDidChange(previousTraitCollection)
+
+        if traitCollection.hasDifferentColorAppearance(comparedTo: previousTraitCollection) {
+            updateCardAppearance()
+        }
+    }
+
+    private func configureCardViewIfNeeded() {
+        guard !didConfigureCardView else { return }
+        didConfigureCardView = true
+
+        let card = UIView()
+        card.translatesAutoresizingMaskIntoConstraints = false
+        card.layer.cornerRadius = 14
+        card.layer.masksToBounds = true
+        card.isHidden = true
+        card.isUserInteractionEnabled = false
+
+        contentView.insertSubview(card, at: 0)
+
+        NSLayoutConstraint.activate([
+            card.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
+            card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
+            card.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 6),
+            card.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -6)
+        ])
+
+        cardView = card
+        updateCardAppearance()
+    }
+
+    private func updateCardAppearance() {
+        guard let cardView = cardView else { return }
+
+        if traitCollection.userInterfaceStyle == .dark {
+            cardView.backgroundColor = .secondarySystemGroupedBackground
+            cardView.layer.borderWidth = 0
+            cardView.layer.borderColor = nil
+        } else {
+            cardView.backgroundColor = .systemBackground
+            cardView.layer.borderWidth = 1.0 / max(UIScreen.main.scale, 1)
+            cardView.layer.borderColor = UIColor.separator.cgColor
+        }
+    }
+
+    /// Lays the cell out for the given "Display as" mode. Call after
+    /// `configure`/`attachHeaders` so the correct content is already set.
+    public func applyDisplayMode(_ mode: NoteListDisplayMode) {
+        displayMode = mode
+        configureCardViewIfNeeded()
+
+        switch mode {
+        case .list:
+            cardView.isHidden = true
+            preview.isHidden = false
+            preview.numberOfLines = 1
+        case .compact:
+            cardView.isHidden = true
+            preview.isHidden = true
+            preview.numberOfLines = 1
+            hideAllImagePreviews()
+        case .cards:
+            cardView.isHidden = false
+            preview.isHidden = false
+            preview.numberOfLines = 3
+        }
+
+        applyHorizontalInsets(cards: mode == .cards)
+    }
+
+    /// The storyboard lays the text column out 30pt from the cell edge (with the
+    /// glyph at 7pt). Inside a card that column has to move in so the glyph and
+    /// text sit within the 16pt card inset.
+    private func applyHorizontalInsets(cards: Bool) {
+        let leading: CGFloat = cards ? 30 + 20 : 30
+        let trailing: CGFloat = cards ? 25 + 16 : 25
+
+        for constraint in contentView.constraints {
+            guard let first = constraint.firstItem as? UIView else { continue }
+
+            let isTextColumnLeading = constraint.firstAttribute == .leading
+                && constraint.secondAttribute == .leading
+                && (constraint.secondItem as? UIView) === contentView
+                && (first === title || first === preview || first === imagePreview)
+
+            if isTextColumnLeading {
+                constraint.constant = leading
+                continue
+            }
+
+            let isPreviewTrailing = constraint.firstAttribute == .trailing
+                && (constraint.firstItem as? UIView) === contentView
+                && (constraint.secondItem as? UIView) === preview
+
+            if isPreviewTrailing {
+                constraint.constant = trailing
+            }
+        }
+    }
+
+    /// Forces every image preview thumbnail hidden, used for `.compact` mode
+    /// where images are never shown regardless of note content.
+    public func hideAllImagePreviews() {
+        imagePreview.image = nil
+        imagePreview.isHidden = true
+
+        imagePreviewSecond.image = nil
+        imagePreviewSecond.isHidden = true
+
+        imagePreviewThird.image = nil
+        imagePreviewThird.isHidden = true
+
+        imageKeys = []
     }
 
     private func configureSelectionBackground() {
@@ -83,6 +209,7 @@ class NoteCellView: SwipeTableViewCell {
     public func reLoad() {
         if let note = self.note {
             configure(note: note)
+            applyDisplayMode(displayMode)
         }
     }
 
@@ -150,7 +277,11 @@ class NoteCellView: SwipeTableViewCell {
     }
 
     public func updateView() {
-        loadImagesPreview()
+        if displayMode == .compact {
+            hideAllImagePreviews()
+        } else {
+            loadImagesPreview()
+        }
 
         if let note = self.note {
             attachHeaders(note: note)

@@ -853,6 +853,13 @@
 		9F85D2BB2594461ABEC685FE /* NoteListDisplayMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6651835DE43619C289914 /* NoteListDisplayMode.swift */; };
 		BB54EB3E664846D3B610E61C /* NoteListDisplayMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6651835DE43619C289914 /* NoteListDisplayMode.swift */; };
 		43B46EC28B9C415C8727AB9F /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6EF9ED39DDF4D1D96A88311 /* OnboardingView.swift */; };
+		CDD7BA2B62DF46219F1D2F1C /* FolderIconPickerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A748BF0C3FCA4FDA8B3F123A /* FolderIconPickerViewController.swift */; };
+		CB177753E3914AF38EF308F0 /* OverviewHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 909654706AA4450AA1D2EFC0 /* OverviewHostingView.swift */; };
+		6EA735A623724309BDDDC22B /* OverviewHostingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 909654706AA4450AA1D2EFC0 /* OverviewHostingView.swift */; };
+		90F078977509408CA87F0944 /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DDB10C58324191920F19C7 /* OverviewView.swift */; };
+		CF6D9A0E3AB940C88E568CD6 /* OverviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69DDB10C58324191920F19C7 /* OverviewView.swift */; };
+		8FC24F527F4C479DB80B4BD2 /* NoteInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */; };
+		923B869EFC1142C1982BCA54 /* NoteInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1294,6 +1301,10 @@
 		5B5BFEAE172843BF8CF5D0A8 /* FolderColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderColor.swift; sourceTree = "<group>"; };
 		19B6651835DE43619C289914 /* NoteListDisplayMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteListDisplayMode.swift; sourceTree = "<group>"; };
 		F6EF9ED39DDF4D1D96A88311 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		A748BF0C3FCA4FDA8B3F123A /* FolderIconPickerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderIconPickerViewController.swift; sourceTree = "<group>"; };
+		909654706AA4450AA1D2EFC0 /* OverviewHostingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewHostingView.swift; sourceTree = "<group>"; };
+		69DDB10C58324191920F19C7 /* OverviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewView.swift; sourceTree = "<group>"; };
+		51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteInspectorView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1896,6 +1907,9 @@
 		D7E6D9D2208085BB003ECAFC /* View */ = {
 			isa = PBXGroup;
 			children = (
+				51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */,
+				69DDB10C58324191920F19C7 /* OverviewView.swift */,
+				909654706AA4450AA1D2EFC0 /* OverviewHostingView.swift */,
 				11F018B12EF8415200F07580 /* MPreviewContainerView.swift */,
 				11F018AB2EF7E77B00F07580 /* MPreviewFindPanel.swift */,
 				11ABE5E12EEEFCF700E7C9EB /* NotesCounterView.swift */,
@@ -2014,6 +2028,7 @@
 		D7F6CFEE2056ABDB008C584A /* Preferences */ = {
 			isa = PBXGroup;
 			children = (
+				A748BF0C3FCA4FDA8B3F123A /* FolderIconPickerViewController.swift */,
 				D77015812C972B6D00CFF0E8 /* SettingsTableViewCell.swift */,
 				D71354032042AFC800E3776F /* SettingsViewController.swift */,
 				D7C803ED2046DBBD005DA599 /* DefaultExtensionControllerView.swift */,
@@ -2464,6 +2479,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CDD7BA2B62DF46219F1D2F1C /* FolderIconPickerViewController.swift in Sources */,
 				43B46EC28B9C415C8727AB9F /* OnboardingView.swift in Sources */,
 				882F7337205E4553A29C1B6B /* NoteListDisplayMode.swift in Sources */,
 				B5D57D3A94D943AB94C686E2 /* FolderColor.swift in Sources */,
@@ -2689,6 +2705,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				8FC24F527F4C479DB80B4BD2 /* NoteInspectorView.swift in Sources */,
+				90F078977509408CA87F0944 /* OverviewView.swift in Sources */,
+				CB177753E3914AF38EF308F0 /* OverviewHostingView.swift in Sources */,
 				16AF27A428D14A27B392DEAD /* NoteListDisplayMode.swift in Sources */,
 				4990E403301F4D5297F2B6EB /* FolderColor.swift in Sources */,
 				A1B2C3D42F56789000112233 /* GlobalShortcut.swift in Sources */,
@@ -2927,6 +2946,9 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				923B869EFC1142C1982BCA54 /* NoteInspectorView.swift in Sources */,
+				CF6D9A0E3AB940C88E568CD6 /* OverviewView.swift in Sources */,
+				6EA735A623724309BDDDC22B /* OverviewHostingView.swift in Sources */,
 				9F85D2BB2594461ABEC685FE /* NoteListDisplayMode.swift in Sources */,
 				D1B8C3D42137400F90007B7B /* FolderColor.swift in Sources */,
 				A1B2C3D52F56789000112233 /* GlobalShortcut.swift in Sources */,
