@@ -146,12 +146,27 @@ struct DailyNotesView: View {
         }
     }
 
+    private var subtitle: String {
+        let weekday = model.selectedDate.formatted(.dateTime.weekday(.wide))
+        let calendar = Calendar.current
+        if calendar.isDateInToday(model.selectedDate) {
+            return weekday + " · " + NSLocalizedString("Today", comment: "Daily notes")
+        }
+        if calendar.isDateInYesterday(model.selectedDate) {
+            return weekday + " · " + NSLocalizedString("Yesterday", comment: "Daily notes")
+        }
+        if calendar.isDateInTomorrow(model.selectedDate) {
+            return weekday + " · " + NSLocalizedString("Tomorrow", comment: "Daily notes")
+        }
+        return weekday + " · " + model.selectedDate.formatted(.dateTime.year())
+    }
+
     private var dateHeader: some View {
         HStack(alignment: .firstTextBaseline) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(model.selectedDate, format: .dateTime.month(.abbreviated).day())
                     .font(.system(size: 34, weight: .bold))
-                Text(model.selectedDate, format: .dateTime.weekday(.wide).year())
+                Text(subtitle)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
