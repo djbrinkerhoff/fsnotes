@@ -19,6 +19,11 @@ class NotesTableView: UITableView,
     
     var notes = [Note]()
     var viewDelegate: ViewController? = nil
+
+    /// Craft-style "Display as" mode for the current folder. Set by the list
+    /// controller when the sidebar selection changes; cells read it to lay
+    /// themselves out.
+    public var displayMode: NoteListDisplayMode = .list
     public var selectedIndexPaths: [IndexPath]?
 
     private var didConfigureSeparatorStyle = false
