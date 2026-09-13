@@ -71,11 +71,20 @@ final class OverviewHostingView: NSView {
         isHidden = false
     }
 
-    public func showFolder(title: String, notes: [OverviewNoteItemInput]) {
+    public func showFolder(
+        title: String,
+        notes: [OverviewNoteItemInput],
+        displayMode: NoteListDisplayMode,
+        showsFolderPath: Bool,
+        onDisplayModeChange: @escaping (NoteListDisplayMode) -> Void
+    ) {
         guard #available(macOS 12, *), let model = model else { return }
 
         model.folderTitle = title
         model.folderNotes = notes.map { $0.makeItem() }
+        model.displayMode = displayMode
+        model.showsFolderPath = showsFolderPath
+        model.onDisplayModeChange = onDisplayModeChange
         model.mode = .folder
 
         isHidden = false

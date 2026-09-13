@@ -862,6 +862,10 @@
 		923B869EFC1142C1982BCA54 /* NoteInspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */; };
 		DC89A59939FF4C40A1BC8C04 /* DailyNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 263EC88B97F346AFA4BE642F /* DailyNotesView.swift */; };
 		4E0CE2FA260A4597B41867AD /* DailyNotesViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E1AB859622549AC84D863D7 /* DailyNotesViewController.swift */; };
+		8F4BFD1B798A46AEB716958F /* DateBucket.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE8B9314BBB243099EF958EC /* DateBucket.swift */; };
+		CCA2804B50174D539170ACDE /* LibraryScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4AF3BB200BB417ABCAB99FD /* LibraryScreens.swift */; };
+		DE9F99DDCA7B457C85A01506 /* StarredNoteItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FE09C42E303400DBB3B6B24 /* StarredNoteItem.swift */; };
+		2988AFA5E6AE48C6A5E1F0A2 /* StarredNoteItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FE09C42E303400DBB3B6B24 /* StarredNoteItem.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1309,6 +1313,9 @@
 		51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteInspectorView.swift; sourceTree = "<group>"; };
 		263EC88B97F346AFA4BE642F /* DailyNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyNotesView.swift; sourceTree = "<group>"; };
 		4E1AB859622549AC84D863D7 /* DailyNotesViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyNotesViewController.swift; sourceTree = "<group>"; };
+		EE8B9314BBB243099EF958EC /* DateBucket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DateBucket.swift; sourceTree = "<group>"; };
+		B4AF3BB200BB417ABCAB99FD /* LibraryScreens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryScreens.swift; sourceTree = "<group>"; };
+		2FE09C42E303400DBB3B6B24 /* StarredNoteItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StarredNoteItem.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1379,6 +1386,7 @@
 		11598D9F2EDCB85F0036E387 /* Helpers */ = {
 			isa = PBXGroup;
 			children = (
+				EE8B9314BBB243099EF958EC /* DateBucket.swift */,
 				309C717A5DB242DBA84A67AB /* HomeLibraryModel.swift */,
 				0D21219378E147E78241CA8E /* LibraryNotifications.swift */,
 				D7CBAFFD214D5A1C002ECD5A /* ShortcutIdentifier.swift */,
@@ -1911,6 +1919,7 @@
 		D7E6D9D2208085BB003ECAFC /* View */ = {
 			isa = PBXGroup;
 			children = (
+				2FE09C42E303400DBB3B6B24 /* StarredNoteItem.swift */,
 				51F32E0DED664B189FFA11FC /* NoteInspectorView.swift */,
 				69DDB10C58324191920F19C7 /* OverviewView.swift */,
 				909654706AA4450AA1D2EFC0 /* OverviewHostingView.swift */,
@@ -1969,6 +1978,7 @@
 		D7ED3FFB20CD0AA3001438EE /* View */ = {
 			isa = PBXGroup;
 			children = (
+				B4AF3BB200BB417ABCAB99FD /* LibraryScreens.swift */,
 				4E1AB859622549AC84D863D7 /* DailyNotesViewController.swift */,
 				263EC88B97F346AFA4BE642F /* DailyNotesView.swift */,
 				F6EF9ED39DDF4D1D96A88311 /* OnboardingView.swift */,
@@ -2485,6 +2495,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				CCA2804B50174D539170ACDE /* LibraryScreens.swift in Sources */,
+				8F4BFD1B798A46AEB716958F /* DateBucket.swift in Sources */,
 				4E0CE2FA260A4597B41867AD /* DailyNotesViewController.swift in Sources */,
 				DC89A59939FF4C40A1BC8C04 /* DailyNotesView.swift in Sources */,
 				CDD7BA2B62DF46219F1D2F1C /* FolderIconPickerViewController.swift in Sources */,
@@ -2713,6 +2725,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				DE9F99DDCA7B457C85A01506 /* StarredNoteItem.swift in Sources */,
 				8FC24F527F4C479DB80B4BD2 /* NoteInspectorView.swift in Sources */,
 				90F078977509408CA87F0944 /* OverviewView.swift in Sources */,
 				CB177753E3914AF38EF308F0 /* OverviewHostingView.swift in Sources */,
@@ -2954,6 +2967,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				2988AFA5E6AE48C6A5E1F0A2 /* StarredNoteItem.swift in Sources */,
 				923B869EFC1142C1982BCA54 /* NoteInspectorView.swift in Sources */,
 				CF6D9A0E3AB940C88E568CD6 /* OverviewView.swift in Sources */,
 				6EA735A623724309BDDDC22B /* OverviewHostingView.swift in Sources */,

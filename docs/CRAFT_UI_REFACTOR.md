@@ -60,8 +60,37 @@ of scope.
   title ("Folder › Title"); note inspector popover (dates, counts, tags,
   pinned, encryption, reveal in Finder).
 
+## Phase 3 – screen-by-screen alignment (this branch)
+
+Compared every screen of `docs/reference/contact-sheet.png` with the build.
+
+- iOS Home: quick links without chevrons; "Starred ›", "Folders ›", "Tags ›"
+  headers open full screens; starred rows show the title only; folder rows
+  show note counts; Trash sits at the bottom with its count; bottom bar is
+  Home / Todo / Daily Notes plus a separate "+"; "…" menu top right.
+- iOS Starred, Folders and Tags screens: large titles, Craft document glyph,
+  yellow star, folder path in the subtitle, Starred grouped by Today /
+  Yesterday / Last 7 days / Last 30 days / year, folders with "N Items" and
+  nested folder navigation, one "+" in the bottom bar.
+- iOS note list: large title, search field stacked under the title (iOS 26),
+  "Select" and "…", "Folder · snippet" subtitles when a list spans folders,
+  star glyph for pinned notes, only "+" in the bottom bar.
+- iOS editor: no navigation title, Share and "…" pill (Preview and Find moved
+  into the menu), bottom bar undo/redo and new note, accessory bar led by an
+  "Aa" text-style menu with a "+" insert menu (link, attachment, tag, divider).
+- iOS Daily Notes: vertical timeline of days ("Sep 13  Today · Sunday"), note
+  preview or "Create Daily Note" per day, "Show Previous Days", "Jump To Day".
+- iOS onboarding: full-bleed illustration panel, dots, Next / Start Writing,
+  close button.
+- macOS: Starred documents in the sidebar; folder overview as a date-grouped
+  table (Name / Updated / Created) with a grid-or-table display switcher;
+  Home "Recent" uses the same table.
+
 ## Later
 
+- Date-grouped sections inside the UIKit notes list (Today / Yesterday / …).
+  The table is single-section and its insert, remove and pin code assumes
+  that, so it needs its own careful pass.
 - A true multi-column grid on iPad (the current "Cards" mode is a single
   column, which matches Craft on phone).
 - Colored text and highlights from the editor toolbar are out of scope: they

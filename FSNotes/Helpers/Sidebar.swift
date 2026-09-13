@@ -93,6 +93,17 @@ class Sidebar {
             list = system
         }
 
+        // Craft-style "Starred" section: newest-modified pinned notes first,
+        // capped at 12. Hidden entirely when nothing is pinned.
+        let pinnedNotes = (storage.getPinned() ?? []).sorted { $0.modifiedLocalAt > $1.modifiedLocalAt }
+        if !pinnedNotes.isEmpty {
+            list.append(SidebarItem(name: "starred", type: .Separator))
+
+            for note in pinnedNotes.prefix(12) {
+                list.append(StarredNoteItem(note: note))
+            }
+        }
+
         list.append(SidebarItem(name: "projects", type: .Separator))
 
         let projects = storage.getSidebarProjects()

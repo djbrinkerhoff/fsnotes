@@ -541,8 +541,23 @@ class ViewController: EditorViewController,
         if editor.note == nil {
             let notes = notesTableView.getNoteList().map { noteOverviewInput(for: $0) }
             let title = currentOverviewTitle()
+            let isSingleProject = (sidebarOutlineView.item(atRow: sidebarOutlineView.selectedRow) as? Project) != nil
+            let displayMode = sidebarOutlineView.getSelectedProject()?.settings.displayMode ?? .list
 
-            overviewHostingView.showFolder(title: title, notes: notes)
+            overviewHostingView.showFolder(
+                title: title,
+                notes: notes,
+                displayMode: displayMode,
+                showsFolderPath: !isSingleProject,
+                onDisplayModeChange: { [weak self] mode in
+                    guard let self = self, let project = self.sidebarOutlineView.getSelectedProject() else { return }
+
+                    project.settings.displayMode = mode
+                    project.saveSettings()
+
+                    self.updateOverview()
+                }
+            )
             nonSelectedLabel?.isHidden = true
             return
         }
@@ -1898,7 +1913,10 @@ class ViewController: EditorViewController,
 
         notesTableView.setNoteList(notes: resorted)
         notesTableView.endUpdates()
-        
+
+        // Keep the sidebar's Craft-style "Starred" section in sync with pin state.
+        sidebarOutlineView.reloadStarred()
+
         //notesTableView.reloadData()
         //notesTableView.selectRowIndexes(newIndexes, byExtendingSelection: false)
     }

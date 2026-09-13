@@ -19,35 +19,11 @@ extension EditorViewController {
         var items = [UIBarButtonItem]()
         var fixedWidth: CGFloat = 0
 
-        items.append(makeInsertMenuButton())
+        items.append(makeTextStyleMenuButton())
         fixedWidth += Self.toolbarButtonSide
 
         items.append(makeSeparator())
         fixedWidth += Self.separatorWidth
-
-        items.append(makeToolbarButton(
-            systemImage: "bold",
-            selector: #selector(EditorViewController.boldPressed),
-            tint: .label,
-            accessibilityLabel: NSLocalizedString("Bold", comment: "")
-        ))
-        fixedWidth += Self.toolbarButtonSide
-
-        items.append(makeToolbarButton(
-            systemImage: "italic",
-            selector: #selector(EditorViewController.italicPressed),
-            tint: .label,
-            accessibilityLabel: NSLocalizedString("Italic", comment: "")
-        ))
-        fixedWidth += Self.toolbarButtonSide
-
-        items.append(makeToolbarButton(
-            systemImage: "strikethrough",
-            selector: #selector(EditorViewController.strikePressed),
-            tint: .label,
-            accessibilityLabel: NSLocalizedString("Strikethrough", comment: "")
-        ))
-        fixedWidth += Self.toolbarButtonSide
 
         items.append(makeToolbarButton(
             systemImage: "checkmark.square",
@@ -58,10 +34,18 @@ extension EditorViewController {
         fixedWidth += Self.toolbarButtonSide
 
         items.append(makeToolbarButton(
-            systemImage: "increase.indent",
-            selector: #selector(EditorViewController.indentPressed),
+            systemImage: "list.bullet",
+            selector: #selector(EditorViewController.orderedListPressed),
             tint: .label,
-            accessibilityLabel: NSLocalizedString("Indent", comment: "")
+            accessibilityLabel: NSLocalizedString("Bulleted list", comment: "")
+        ))
+        fixedWidth += Self.toolbarButtonSide
+
+        items.append(makeToolbarButton(
+            systemImage: "list.number",
+            selector: #selector(EditorViewController.numberedListPressed),
+            tint: .label,
+            accessibilityLabel: NSLocalizedString("Numbered list", comment: "")
         ))
         fixedWidth += Self.toolbarButtonSide
 
@@ -73,7 +57,18 @@ extension EditorViewController {
         ))
         fixedWidth += Self.toolbarButtonSide
 
+        items.append(makeToolbarButton(
+            systemImage: "increase.indent",
+            selector: #selector(EditorViewController.indentPressed),
+            tint: .label,
+            accessibilityLabel: NSLocalizedString("Indent", comment: "")
+        ))
+        fixedWidth += Self.toolbarButtonSide
+
         items.append(UIBarButtonItem.flexibleSpace())
+
+        items.append(makeInsertMenuButton())
+        fixedWidth += Self.toolbarButtonSide
 
         let undoItem = makeToolbarButton(
             systemImage: "arrow.uturn.backward",
@@ -148,44 +143,6 @@ extension EditorViewController {
     }
 
     private func makeInsertMenu() -> UIMenu {
-        var blockActions = [UIAction]()
-
-        blockActions.append(UIAction(
-            title: NSLocalizedString("Heading", comment: ""),
-            image: UIImage(systemName: "textformat.size")
-        ) { [weak self] _ in self?.headerPressed() })
-
-        blockActions.append(UIAction(
-            title: NSLocalizedString("To-do", comment: ""),
-            image: UIImage(systemName: "checkmark.square")
-        ) { [weak self] _ in self?.todoPressed() })
-
-        blockActions.append(UIAction(
-            title: NSLocalizedString("Bulleted list", comment: ""),
-            image: UIImage(systemName: "list.bullet")
-        ) { [weak self] _ in self?.orderedListPressed() })
-
-        blockActions.append(UIAction(
-            title: NSLocalizedString("Numbered list", comment: ""),
-            image: UIImage(systemName: "list.number")
-        ) { [weak self] _ in self?.numberedListPressed() })
-
-        blockActions.append(UIAction(
-            title: NSLocalizedString("Quote", comment: ""),
-            image: UIImage(systemName: "text.quote")
-        ) { [weak self] _ in self?.quotePressed() })
-
-        blockActions.append(UIAction(
-            title: NSLocalizedString("Code block", comment: ""),
-            image: UIImage(systemName: "curlybraces")
-        ) { [weak self] _ in self?.codeBlockButton() })
-
-        let blocksMenu = UIMenu(
-            title: NSLocalizedString("Blocks", comment: ""),
-            options: .displayInline,
-            children: blockActions
-        )
-
         var insertActions = [UIAction]()
 
         insertActions.append(UIAction(
@@ -205,16 +162,123 @@ extension EditorViewController {
             ) { [weak self] _ in self?.tagPressed() })
         }
 
-        let insertMenu = UIMenu(
+        insertActions.append(UIAction(
+            title: NSLocalizedString("Divider", comment: ""),
+            image: UIImage(systemName: "minus")
+        ) { [weak self] _ in self?.dividerPressed() })
+
+        return UIMenu(
             title: NSLocalizedString("Insert", comment: ""),
             options: .displayInline,
             children: insertActions
         )
+    }
+
+    @objc func dividerPressed() {
+        editArea.insertText("\n---\n")
+    }
+
+    // MARK: - "Aa" text-style menu
+
+    private func makeTextStyleMenuButton() -> UIBarButtonItem {
+        let button = UIButton(type: .system)
+        button.setTitle(NSLocalizedString("Aa", comment: ""), for: .normal)
+        button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
+        button.setTitleColor(.label, for: .normal)
+        button.menu = makeTextStyleMenu()
+        button.showsMenuAsPrimaryAction = true
+        button.frame = CGRect(x: 0, y: 0, width: Self.toolbarButtonSide, height: Self.toolbarButtonSide)
+        button.accessibilityLabel = NSLocalizedString("Text style", comment: "")
+
+        let item = UIBarButtonItem(customView: button)
+        item.accessibilityLabel = NSLocalizedString("Text style", comment: "")
+        return item
+    }
+
+    private func makeTextStyleMenu() -> UIMenu {
+        var textActions = [UIAction]()
+
+        textActions.append(UIAction(
+            title: NSLocalizedString("Heading", comment: ""),
+            image: UIImage(systemName: "textformat.size.larger")
+        ) { [weak self] _ in self?.headerPressed() })
+
+        textActions.append(UIAction(
+            title: NSLocalizedString("Body", comment: ""),
+            image: UIImage(systemName: "textformat")
+        ) { [weak self] _ in self?.bodyPressed() })
+
+        textActions.append(UIAction(
+            title: NSLocalizedString("Quote", comment: ""),
+            image: UIImage(systemName: "text.quote")
+        ) { [weak self] _ in self?.quotePressed() })
+
+        textActions.append(UIAction(
+            title: NSLocalizedString("Code block", comment: ""),
+            image: UIImage(systemName: "curlybraces")
+        ) { [weak self] _ in self?.codeBlockButton() })
+
+        let textMenu = UIMenu(
+            title: NSLocalizedString("Text", comment: ""),
+            options: .displayInline,
+            children: textActions
+        )
+
+        var styleActions = [UIAction]()
+
+        styleActions.append(UIAction(
+            title: NSLocalizedString("Bold", comment: ""),
+            image: UIImage(systemName: "bold")
+        ) { [weak self] _ in self?.boldPressed() })
+
+        styleActions.append(UIAction(
+            title: NSLocalizedString("Italic", comment: ""),
+            image: UIImage(systemName: "italic")
+        ) { [weak self] _ in self?.italicPressed() })
+
+        styleActions.append(UIAction(
+            title: NSLocalizedString("Strikethrough", comment: ""),
+            image: UIImage(systemName: "strikethrough")
+        ) { [weak self] _ in self?.strikePressed() })
+
+        styleActions.append(UIAction(
+            title: NSLocalizedString("Underline", comment: ""),
+            image: UIImage(systemName: "underline")
+        ) { [weak self] _ in self?.underlinePressed() })
+
+        let styleMenu = UIMenu(
+            title: NSLocalizedString("Style", comment: ""),
+            options: .displayInline,
+            children: styleActions
+        )
 
         return UIMenu(
-            title: NSLocalizedString("Insert", comment: ""),
-            children: [blocksMenu, insertMenu]
+            title: NSLocalizedString("Aa", comment: ""),
+            children: [textMenu, styleMenu]
         )
+    }
+
+    /// Strips a leading heading (`#` … `######`) or blockquote (`>`) marker from the
+    /// current paragraph, returning it to plain body text. Routed through
+    /// `UITextView.replace(_:withText:)` so the change participates in undo.
+    @objc func bodyPressed() {
+        let storage = editArea.textStorage
+        let pRange = storage.mutableString.paragraphRange(for: editArea.selectedRange)
+        let paragraph = storage.mutableString.substring(with: pRange)
+
+        guard let regex = try? NSRegularExpression(pattern: "^(#{1,6}\\s|>\\s)") else { return }
+        let fullRange = NSRange(location: 0, length: (paragraph as NSString).length)
+        guard let match = regex.firstMatch(in: paragraph, range: fullRange) else { return }
+
+        let stripped = (paragraph as NSString).replacingCharacters(in: match.range, with: "")
+
+        guard
+            let start = editArea.position(from: editArea.beginningOfDocument, offset: pRange.location),
+            let end = editArea.position(from: start, offset: pRange.length),
+            let textRange = editArea.textRange(from: start, to: end)
+        else { return }
+
+        editArea.replace(textRange, withText: stripped)
     }
 
     // MARK: - Helpers

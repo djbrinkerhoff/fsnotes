@@ -24,6 +24,9 @@ class NotesTableView: UITableView,
     /// controller when the sidebar selection changes; cells read it to lay
     /// themselves out.
     public var displayMode: NoteListDisplayMode = .list
+
+    /// Craft shows "Folder · snippet" when a list spans several folders.
+    public var showsFolderInSubtitle = false
     public var selectedIndexPaths: [IndexPath]?
 
     private var didConfigureSeparatorStyle = false

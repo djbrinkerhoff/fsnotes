@@ -79,7 +79,9 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
     public var initialLoadingState = false
     
     override func viewWillAppear(_ animated: Bool) {
-        navigationController?.navigationBar.prefersLargeTitles = false
+        // Craft-style list screens use a large title with the search field under it.
+        navigationController?.navigationBar.prefersLargeTitles = Self.usesHomeNavigation
+        navigationItem.largeTitleDisplayMode = Self.usesHomeNavigation ? .always : .never
 
         super.viewWillAppear(animated)
         navigationItem.searchController = nil
@@ -354,6 +356,10 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
         searchController.searchBar.placeholder = NSLocalizedString("Search or create", comment: "")
         searchController.searchBar.returnKeyType = .done
 
+        if #available(iOS 26.0, *), Self.usesHomeNavigation {
+            navigationItem.preferredSearchBarPlacement = .stacked
+        }
+
         if #available(iOS 26.0, *) {
             searchController.searchBar.showsCancelButton = true
         } else {
@@ -374,7 +380,7 @@ class ViewController: UIViewController, UISearchBarDelegate, UIGestureRecognizer
     public func configureToolbar() {
         var items = [UIBarButtonItem]()
 
-        if #available(iOS 26.0, *) {
+        if #available(iOS 26.0, *), !Self.usesHomeNavigation {
             items.append(navigationItem.searchBarPlacementBarButtonItem)
         }
 

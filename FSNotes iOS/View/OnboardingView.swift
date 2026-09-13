@@ -52,8 +52,28 @@ struct OnboardingView: View {
                         .tag(page.id)
                 }
             }
-            .tabViewStyle(.page(indexDisplayMode: .always))
-            .indexViewStyle(.page(backgroundDisplayMode: .always))
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .overlay(alignment: .topTrailing) {
+                Button(NSLocalizedString("Close", comment: ""), systemImage: "xmark") {
+                    onDone()
+                }
+                .labelStyle(.iconOnly)
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(.secondary)
+                .padding(8)
+                .background(.thinMaterial, in: Circle())
+                .padding(16)
+            }
+
+            HStack(spacing: 8) {
+                ForEach(pages) { page in
+                    Circle()
+                        .fill(page.id == selection ? AnyShapeStyle(.primary) : AnyShapeStyle(.quaternary))
+                        .frame(width: 7, height: 7)
+                }
+            }
+            .padding(.vertical, 18)
+            .accessibilityHidden(true)
 
             Button {
                 if selection < pages.count - 1 {
@@ -63,7 +83,7 @@ struct OnboardingView: View {
                 }
             } label: {
                 Text(selection < pages.count - 1
-                     ? NSLocalizedString("Continue", comment: "Onboarding")
+                     ? NSLocalizedString("Next", comment: "Onboarding")
                      : NSLocalizedString("Start Writing", comment: "Onboarding"))
                     .font(.headline)
                     .frame(maxWidth: .infinity)
@@ -72,17 +92,9 @@ struct OnboardingView: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
             .padding(.horizontal, 24)
-            .padding(.bottom, 12)
-
-            Button(NSLocalizedString("Skip", comment: "Onboarding")) {
-                onDone()
-            }
-            .font(.subheadline)
-            .foregroundStyle(.secondary)
-            .padding(.bottom, 20)
-            .opacity(selection < pages.count - 1 ? 1 : 0)
+            .padding(.bottom, 24)
         }
-        .background(SwiftUI.Color(uiColor: .systemBackground))
+        .background(SwiftUI.Color(uiColor: .systemGroupedBackground))
         .sensoryFeedback(.selection, trigger: selection)
     }
 }
@@ -91,24 +103,29 @@ struct OnboardingPageView: View {
     var page: OnboardingPage
 
     var body: some View {
-        VStack(spacing: 28) {
-            Spacer(minLength: 12)
-
+        VStack(spacing: 0) {
             ZStack {
-                RoundedRectangle(cornerRadius: 36, style: .continuous)
-                    .fill(LinearGradient(colors: page.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
-                    .frame(width: 220, height: 220)
-                    .shadow(color: page.gradient.last?.opacity(0.35) ?? .clear, radius: 24, y: 12)
+                LinearGradient(colors: page.gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
+                RadialGradient(colors: [.white.opacity(0.35), .clear], center: .bottomLeading, startRadius: 20, endRadius: 320)
 
-                SwiftUI.Image(systemName: page.systemImage)
-                    .font(.system(size: 88, weight: .medium))
-                    .foregroundStyle(.white)
+                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    .fill(.white.opacity(0.92))
+                    .frame(width: 180, height: 180)
+                    .shadow(color: .black.opacity(0.15), radius: 20, y: 10)
+                    .overlay(
+                        SwiftUI.Image(systemName: page.systemImage)
+                            .font(.system(size: 72, weight: .medium))
+                            .foregroundStyle(LinearGradient(colors: page.gradient, startPoint: .topLeading, endPoint: .bottomTrailing))
+                    )
             }
+            .frame(maxWidth: .infinity)
+            .frame(height: 300)
+            .clipShape(RoundedRectangle(cornerRadius: 0))
             .accessibilityHidden(true)
 
             VStack(spacing: 12) {
                 Text(page.title)
-                    .font(.title.weight(.bold))
+                    .font(.title2.weight(.bold))
                     .multilineTextAlignment(.center)
                 Text(page.message)
                     .font(.body)
@@ -116,9 +133,10 @@ struct OnboardingPageView: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(.horizontal, 32)
+            .padding(.horizontal, 28)
+            .padding(.top, 28)
 
-            Spacer()
+            Spacer(minLength: 0)
         }
         .frame(maxWidth: .infinity)
     }

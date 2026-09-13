@@ -43,6 +43,10 @@ class SidebarOutlineView: NSOutlineView,
             }
         }
 
+        if item(atRow: rowIndex) is StarredNoteItem {
+            return
+        }
+
         if !selectedRowIndexes.contains(rowIndex) {
             selectRowIndexes(IndexSet(integer: rowIndex), byExtendingSelection: false)
             scrollRowToVisible(rowIndex)
@@ -523,10 +527,14 @@ class SidebarOutlineView: NSOutlineView,
             return project.child.count
         }
 
+        if item is StarredNoteItem {
+            return 0
+        }
+
         if let sidebar = sidebarItems, item == nil {
             return sidebar.count
         }
-        
+
         return 0
     }
     
@@ -553,9 +561,13 @@ class SidebarOutlineView: NSOutlineView,
             return project.isExpandable()
         }
 
+        if item is StarredNoteItem {
+            return false
+        }
+
         return false
     }
-    
+
     func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
         if let tag = item as? FSTag {
             return tag.child[index]
@@ -568,7 +580,7 @@ class SidebarOutlineView: NSOutlineView,
         if let sidebar = sidebarItems, item == nil {
             return sidebar[index]
         }
-        
+
         return String()
     }
     
@@ -599,6 +611,8 @@ class SidebarOutlineView: NSOutlineView,
                 title = NSLocalizedString("Folders", comment: "Sidebar section")
             case "tags":
                 title = NSLocalizedString("Tags", comment: "Sidebar section")
+            case "starred":
+                title = NSLocalizedString("Starred", comment: "Sidebar section")
             default:
                 title = ""
             }
@@ -648,6 +662,14 @@ class SidebarOutlineView: NSOutlineView,
             cell.label.frame.origin.x = 25
             cell.textField?.stringValue = project.label
 
+        } else if let starred = item as? StarredNoteItem {
+            cell.type = nil
+            cell.icon.image = sidebarSymbolImage(named: "doc.text")
+            cell.icon.contentTintColor = .secondaryLabelColor
+            cell.icon.isHidden = false
+            cell.label.frame.origin.x = 25
+            cell.textField?.stringValue = starred.note.getTitle() ?? starred.note.getFileName()
+
         } else if let si = item as? SidebarItem {
             let name = si.name
 
@@ -690,10 +712,14 @@ class SidebarOutlineView: NSOutlineView,
             return true
         }
 
+        if item is StarredNoteItem {
+            return true
+        }
+
         if let sidebarItem = item as? SidebarItem {
             return sidebarItem.isSelectable()
         }
-        
+
         return false
     }
 
@@ -713,6 +739,15 @@ class SidebarOutlineView: NSOutlineView,
         
         guard let vd = viewDelegate else { return }
         guard let view = notification.object as? NSOutlineView else { return }
+
+        // Craft-style "Starred" row: fill the editor without running the normal
+        // sidebar-selection bookkeeping below (which assumes the selected item
+        // is a Project/SidebarItem/FSTag and would otherwise clear the editor
+        // and stomp `UserDefaultsManagement.lastSidebarItem`).
+        if let starredItem = view.item(atRow: view.selectedRow) as? StarredNoteItem {
+            vd.notesTableView.selectRowAndSidebarItem(note: starredItem.note)
+            return
+        }
 
         viewDelegate?.notesTableView.disableLockedProject()
         
@@ -1643,7 +1678,49 @@ class SidebarOutlineView: NSOutlineView,
 
         vc.sidebarOutlineView.loadAllTags()
     }
-    
+
+    /// Rebuilds `sidebarItems` from a fresh `Sidebar().getList()` (picking up
+    /// pin/unpin changes to the Craft-style "Starred" section) while
+    /// preserving the current selection and project expansion state. Mirrors
+    /// `reloadSidebar()` / `ViewController.restoreSidebar()`.
+    @objc public func reloadStarred() {
+        let selectedProject = getSelectedProject()
+        let selectedStarredNote = (item(atRow: selectedRow) as? StarredNoteItem)?.note
+        let selectedRawSidebarItem = item(atRow: selectedRow) as? SidebarItem
+
+        sidebarItems = Sidebar().getList()
+        reloadData()
+
+        for project in storage.getProjects() where project.isExpanded {
+            expandItem(project)
+        }
+
+        if let note = selectedStarredNote,
+           let starredItem = sidebarItems?.first(where: { ($0 as? StarredNoteItem)?.note === note }) {
+            let restoredRow = row(forItem: starredItem)
+            if restoredRow > -1 {
+                selectRowIndexes([restoredRow], byExtendingSelection: false)
+            }
+            return
+        }
+
+        if let project = selectedProject {
+            let restoredRow = row(forItem: project)
+            if restoredRow > -1 {
+                selectRowIndexes([restoredRow], byExtendingSelection: false)
+            }
+            return
+        }
+
+        if let sidebarItem = selectedRawSidebarItem,
+           let restored = sidebarItems?.first(where: { ($0 as? SidebarItem)?.type == sidebarItem.type && ($0 as? SidebarItem)?.name == sidebarItem.name }) {
+            let restoredRow = row(forItem: restored)
+            if restoredRow > -1 {
+                selectRowIndexes([restoredRow], byExtendingSelection: false)
+            }
+        }
+    }
+
     public func deselectAllTags() {
         guard let items = self.sidebarItems?.filter({($0 as? FSTag) != nil}) else { return }
         for item in items {

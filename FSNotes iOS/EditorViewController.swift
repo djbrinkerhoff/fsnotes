@@ -59,7 +59,7 @@ class EditorViewController: UIViewController,
         storageQueue.maxConcurrentOperationCount = 1
         storageQueue.qualityOfService = .userInitiated
 
-        editArea.textContainerInset = UIEdgeInsets(top: 20, left: 16, bottom: 24, right: 16)
+        editArea.textContainerInset = UIEdgeInsets(top: 28, left: 16, bottom: 24, right: 16)
 
         let imageTap = SingleImageTouchDownGestureRecognizer(target: self, action: #selector(imageTapHandler(_:)))
         editArea.addGestureRecognizer(imageTap)
@@ -80,9 +80,10 @@ class EditorViewController: UIViewController,
         super.viewDidLoad()
         
         var items = [UIBarButtonItem]()
-        items.append(UIBarButtonItem(systemImageName: "magnifyingglass", target: self, selector: #selector(editorSearch)))
+        items.append(UIBarButtonItem(systemImageName: "arrow.uturn.backward", target: self, selector: #selector(undoPressed)))
+        items.append(UIBarButtonItem(systemImageName: "arrow.uturn.forward", target: self, selector: #selector(redoPressed)))
         items.append(UIBarButtonItem.flexibleSpace())
-        items.append(UIBarButtonItem(systemImageName: "plus", target: self, selector: #selector(newNote)))
+        items.append(UIBarButtonItem(systemImageName: "square.and.pencil", target: self, selector: #selector(newNote)))
 
         toolbarItems = items
 
@@ -176,15 +177,8 @@ class EditorViewController: UIViewController,
     }
     
     public func updateTitle() {
-        // Craft-style: the navigation bar names the folder the note lives in,
-        // the document itself carries its title in the content.
-        if let project = note?.project {
-            navigationItem.title = project.isDefault
-                ? NSLocalizedString("Inbox", comment: "")
-                : project.label
-        } else {
-            navigationItem.title = nil
-        }
+        // Craft-style: no nav bar title, the document carries its title in the content.
+        navigationItem.title = nil
 
         if #available(iOS 26.0, *) {
             navigationItem.subtitle = nil
@@ -220,18 +214,38 @@ class EditorViewController: UIViewController,
         guard let note = self.note else { return }
         guard let menu = UIApplication.getVC().notesTable.makeBulkMenu(editor: true, note: note) else { return }
 
-        let buttonName =
-            editArea.note?.previewState == true
-                ? "eye.slash"
-                : "eye"
+        let isPreviewing = editArea.note?.previewState == true
 
-        let previewBarItem = UIBarButtonItem(systemImageName: buttonName, target: self, selector: #selector(togglePreview))
-        previewBarItem.tag = 5
+        let previewAction = UIAction(
+            title: isPreviewing ? NSLocalizedString("Edit", comment: "") : NSLocalizedString("Preview", comment: ""),
+            image: UIImage(systemName: isPreviewing ? "eye.slash" : "eye"),
+            state: isPreviewing ? .on : .off,
+            handler: { [weak self] _ in self?.togglePreview() }
+        )
+
+        let findAction = UIAction(
+            title: NSLocalizedString("Find in Note", comment: ""),
+            image: UIImage(systemName: "magnifyingglass"),
+            handler: { [weak self] _ in self?.editorSearch() }
+        )
+
+        let quickSection = UIMenu(
+            title: "",
+            options: .displayInline,
+            children: [previewAction, findAction]
+        )
+
+        let wrappedMenu = menu.replacingChildren([quickSection] + menu.children)
 
         navigationItem.rightBarButtonItems = [
-            UIBarButtonItem(systemImageName: "ellipsis.circle", menu: menu),
-            previewBarItem
+            UIBarButtonItem(systemImageName: "ellipsis.circle", menu: wrappedMenu),
+            UIBarButtonItem(systemImageName: "square.and.arrow.up", target: self, selector: #selector(sharePressed))
         ]
+    }
+
+    @objc public func sharePressed() {
+        guard let note = self.note else { return }
+        UIApplication.getVC().notesTable.shareAction(note: note)
     }
 
     public func fill(note: Note, selectedRange: NSRange? = nil, clearPreview: Bool = false, enableHandoff: Bool = true, completion: (() -> ())? = nil) {
@@ -1173,15 +1187,7 @@ class EditorViewController: UIViewController,
             loadPreviewView()
         }
 
-        let buttonName = note.previewState ? "eye.slash" : "eye"
-
-        if let buttonBar = navigationItem.rightBarButtonItems?.first(where: { $0.tag == 5 }),
-           let button = buttonBar.customView as? UIButton {
-
-            let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .light, scale: .default)
-            let image = UIImage(systemName: buttonName, withConfiguration: config)?.imageWithColor(color1: UIColor.mainTheme)
-            button.setImage(image, for: .normal)
-        }
+        configureNavMenu()
 
         // Handoff needs update in cursor position changed
         userActivity?.needsSave = true

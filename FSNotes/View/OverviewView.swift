@@ -8,6 +8,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 /// A single note rendered as a card in the overview grid.
 @available(macOS 12, *)
@@ -49,9 +50,12 @@ final class OverviewModel: ObservableObject {
     // Folder / generic selection
     @Published var folderTitle: String = ""
     @Published var folderNotes: [OverviewNoteItem] = []
+    @Published var displayMode: NoteListDisplayMode = .list
+    @Published var showsFolderPath: Bool = false
 
     var onSelectNote: ((Note) -> Void)?
     var onSelectProject: ((Project) -> Void)?
+    var onDisplayModeChange: ((NoteListDisplayMode) -> Void)?
 }
 
 @available(macOS 12, *)
@@ -91,9 +95,11 @@ struct OverviewView: View {
 
             if !model.recentNotes.isEmpty {
                 section(title: NSLocalizedString("Recent", comment: "Overview section")) {
-                    LazyVGrid(columns: [SwiftUI.GridItem(.adaptive(minimum: 260), spacing: 10)], alignment: .leading, spacing: 10) {
-                        ForEach(model.recentNotes) { item in
-                            NoteRow(item: item) { model.onSelectNote?(item.note) }
+                    VStack(alignment: .leading, spacing: 0) {
+                        NoteTableColumnHeader()
+
+                        ForEach(groupedByDate(model.recentNotes)) { group in
+                            NoteTableGroupView(group: group, showsFolderPath: true) { model.onSelectNote?($0) }
                         }
                     }
                 }
@@ -123,22 +129,63 @@ struct OverviewView: View {
             HStack(alignment: .firstTextBaseline) {
                 Text(model.folderTitle)
                     .font(.title2.weight(.semibold))
-                Text("\(model.folderNotes.count)")
-                    .font(.title3)
-                    .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
+
+                Spacer()
+
+                displayModeSwitcher
             }
 
             if model.folderNotes.isEmpty {
                 emptyState(text: NSLocalizedString("No notes", comment: "Overview empty state"))
-            } else {
+            } else if model.displayMode == .cards {
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 14) {
                     ForEach(model.folderNotes) { item in
                         NoteCard(item: item) { model.onSelectNote?(item.note) }
                     }
                 }
+            } else {
+                VStack(alignment: .leading, spacing: 0) {
+                    NoteTableColumnHeader()
+
+                    ForEach(groupedByDate(model.folderNotes)) { group in
+                        NoteTableGroupView(group: group, showsFolderPath: model.showsFolderPath) { model.onSelectNote?($0) }
+                    }
+                }
             }
         }
         .padding(24)
+    }
+
+    /// Craft-style segmented control in the folder header: grid ↔ table,
+    /// bound to `ProjectSettings.displayMode` for the selected folder.
+    private var displayModeSwitcher: some View {
+        HStack(spacing: 2) {
+            displayModeButton(systemImage: "rectangle.grid.2x2", isSelected: model.displayMode == .cards) {
+                model.onDisplayModeChange?(.cards)
+            }
+            displayModeButton(systemImage: "list.bullet", isSelected: model.displayMode != .cards) {
+                model.onDisplayModeChange?(.list)
+            }
+        }
+        .padding(2)
+        .background(
+            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                .fill(SwiftUI.Color(NSColor.controlBackgroundColor))
+        )
+    }
+
+    private func displayModeButton(systemImage: String, isSelected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            SwiftUI.Image(systemName: systemImage)
+                .font(.system(size: 12, weight: .medium))
+                .frame(width: 24, height: 20)
+                .background(
+                    RoundedRectangle(cornerRadius: 5, style: .continuous)
+                        .fill(isSelected ? SwiftUI.Color(NSColor.controlAccentColor).opacity(0.18) : SwiftUI.Color.clear)
+                )
+                .foregroundColor(isSelected ? SwiftUI.Color(NSColor.controlAccentColor) : SwiftUI.Color(NSColor.secondaryLabelColor))
+        }
+        .buttonStyle(.plain)
     }
 
     @ViewBuilder
@@ -225,36 +272,210 @@ private struct NoteCard: View {
     }
 }
 
+// MARK: - Craft-style table (grouped by date bucket)
+
+/// Buckets a note list the way Craft's "All Docs"/folder table groups rows:
+/// Today, Yesterday, Last 7 days, Last 30 days, then one group per calendar
+/// year (descending), each newest-modified-first.
 @available(macOS 12, *)
-private struct NoteRow: View {
+private enum OverviewDateBucket: Hashable, Comparable {
+    case today
+    case yesterday
+    case last7Days
+    case last30Days
+    case year(Int)
+
+    private var rank: Int {
+        switch self {
+        case .today: return 0
+        case .yesterday: return 1
+        case .last7Days: return 2
+        case .last30Days: return 3
+        case .year: return 4
+        }
+    }
+
+    static func < (lhs: OverviewDateBucket, rhs: OverviewDateBucket) -> Bool {
+        if lhs.rank != rhs.rank { return lhs.rank < rhs.rank }
+        if case let .year(lY) = lhs, case let .year(rY) = rhs { return lY > rY }
+        return false
+    }
+
+    var label: String {
+        switch self {
+        case .today: return NSLocalizedString("Today", comment: "Overview date bucket")
+        case .yesterday: return NSLocalizedString("Yesterday", comment: "Overview date bucket")
+        case .last7Days: return NSLocalizedString("Last 7 days", comment: "Overview date bucket")
+        case .last30Days: return NSLocalizedString("Last 30 days", comment: "Overview date bucket")
+        case .year(let year): return String(year)
+        }
+    }
+
+    static func bucket(for date: Date, now: Date = Date(), calendar: Calendar = .current) -> OverviewDateBucket {
+        if calendar.isDateInToday(date) { return .today }
+        if calendar.isDateInYesterday(date) { return .yesterday }
+
+        let startOfToday = calendar.startOfDay(for: now)
+        let startOfDate = calendar.startOfDay(for: date)
+        let days = calendar.dateComponents([.day], from: startOfDate, to: startOfToday).day ?? 0
+
+        if days <= 7 { return .last7Days }
+        if days <= 30 { return .last30Days }
+
+        return .year(calendar.component(.year, from: date))
+    }
+}
+
+@available(macOS 12, *)
+private struct OverviewDateGroup: Identifiable {
+    let id: String
+    let label: String
+    let items: [OverviewNoteItem]
+}
+
+@available(macOS 12, *)
+private func groupedByDate(_ items: [OverviewNoteItem]) -> [OverviewDateGroup] {
+    var buckets: [OverviewDateBucket: [OverviewNoteItem]] = [:]
+
+    for item in items {
+        let bucket = OverviewDateBucket.bucket(for: item.note.modifiedLocalAt)
+        buckets[bucket, default: []].append(item)
+    }
+
+    return buckets.keys.sorted().map { bucket in
+        let sorted = (buckets[bucket] ?? []).sorted { $0.note.modifiedLocalAt > $1.note.modifiedLocalAt }
+        return OverviewDateGroup(id: bucket.label, label: bucket.label, items: sorted)
+    }
+}
+
+@available(macOS 12, *)
+private let overviewRelativeDateFormatter: RelativeDateTimeFormatter = {
+    let formatter = RelativeDateTimeFormatter()
+    formatter.dateTimeStyle = .named
+    return formatter
+}()
+
+@available(macOS 12, *)
+private func overviewRelativeString(for date: Date?) -> String {
+    guard let date = date else { return "" }
+    return overviewRelativeDateFormatter.localizedString(for: date, relativeTo: Date())
+}
+
+@available(macOS 12, *)
+private struct NoteTableColumnHeader: View {
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(NSLocalizedString("Name", comment: "Overview table column"))
+                .frame(maxWidth: .infinity, alignment: .leading)
+            Text(NSLocalizedString("Updated", comment: "Overview table column"))
+                .frame(width: 110, alignment: .trailing)
+            Text(NSLocalizedString("Created", comment: "Overview table column"))
+                .frame(width: 110, alignment: .trailing)
+        }
+        .font(.system(size: 11))
+        .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
+        .padding(.horizontal, 12)
+        .padding(.bottom, 6)
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(SwiftUI.Color(NSColor.separatorColor))
+                .frame(height: 1)
+        }
+    }
+}
+
+@available(macOS 12, *)
+private struct NoteTableGroupView: View {
+    let group: OverviewDateGroup
+    let showsFolderPath: Bool
+    let action: (Note) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            Text(group.label)
+                .font(.system(size: 12))
+                .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
+                .padding(.top, 14)
+                .padding(.bottom, 4)
+                .padding(.horizontal, 12)
+
+            ForEach(group.items) { item in
+                NoteTableRow(item: item, showsFolderPath: showsFolderPath) { action(item.note) }
+            }
+        }
+    }
+}
+
+@available(macOS 12, *)
+private struct NoteTableRow: View {
     let item: OverviewNoteItem
+    let showsFolderPath: Bool
     let action: () -> Void
 
     @State private var isHovering = false
 
+    private var subtitle: String {
+        let folder = item.note.project.getNestedLabel()
+        if showsFolderPath, !folder.isEmpty {
+            return "\(folder) · \(item.preview)"
+        }
+        return item.preview
+    }
+
     var body: some View {
         Button(action: action) {
             HStack(spacing: 10) {
-                if item.isPinned {
-                    SwiftUI.Image(systemName: "pin.fill")
-                        .font(.system(size: 10))
+                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                    .fill(SwiftUI.Color(NSColor.controlBackgroundColor))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4, style: .continuous)
+                            .strokeBorder(SwiftUI.Color(NSColor.separatorColor), lineWidth: 1)
+                    )
+                    .overlay(
+                        SwiftUI.Image(systemName: "doc.text")
+                            .font(.system(size: 12))
+                            .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
+                    )
+                    .frame(width: 28, height: 36)
+
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 4) {
+                        if item.isPinned {
+                            SwiftUI.Image(systemName: "star.fill")
+                                .font(.system(size: 10))
+                                .foregroundColor(SwiftUI.Color(NSColor.systemYellow))
+                        }
+
+                        Text(item.title)
+                            .font(.system(size: 13, weight: .semibold))
+                            .lineLimit(1)
+                    }
+
+                    Text(subtitle)
+                        .font(.system(size: 11))
                         .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
-                Text(item.title)
-                    .font(.system(size: 13, weight: .medium))
-                    .lineLimit(1)
-
-                Spacer()
-
-                Text(item.dateLabel)
+                Text(overviewRelativeString(for: item.note.modifiedLocalAt))
                     .font(.system(size: 11))
                     .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
+                    .lineLimit(1)
+                    .frame(width: 110, alignment: .trailing)
+
+                Text(overviewRelativeString(for: item.note.creationDate))
+                    .font(.system(size: 11))
+                    .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))
+                    .lineLimit(1)
+                    .frame(width: 110, alignment: .trailing)
             }
             .padding(.horizontal, 12)
-            .padding(.vertical, 8)
+            .padding(.vertical, 6)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(CardBackground(isHovering: isHovering))
+            .background(isHovering ? SwiftUI.Color(NSColor.controlAccentColor).opacity(0.08) : SwiftUI.Color.clear)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .onHover { isHovering = $0 }

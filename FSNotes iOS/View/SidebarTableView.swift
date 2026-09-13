@@ -281,6 +281,7 @@ class SidebarTableView: UITableView,
 
         vc.buildSearchQuery()
         vc.notesTable.displayMode = sidebarItem.project?.settings.displayMode ?? .list
+        vc.notesTable.showsFolderInSubtitle = [.All, .Todo, .Untagged, .Tag, .Trash].contains(sidebarItem.type)
         vc.reloadNotesTable() {
             DispatchQueue.main.async {
                 vc.notesTable.hideLoader()

@@ -32,15 +32,6 @@ extension UserDefaultsManagement {
         }
     }
 
-    static var collapsedHomeSections: [String] {
-        get {
-            return shared?.array(forKey: "collapsedHomeSections") as? [String] ?? []
-        }
-        set {
-            shared?.set(newValue, forKey: "collapsedHomeSections")
-        }
-    }
-
     static var didShowOnboarding: Bool {
         get {
             return shared?.bool(forKey: "didShowCraftOnboarding") ?? false

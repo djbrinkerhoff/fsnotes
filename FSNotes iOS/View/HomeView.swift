@@ -2,7 +2,7 @@
 //  HomeView.swift
 //  FSNotes iOS
 //
-//  Craft-style Home: search, quick links, starred notes, folders and tags.
+//  Craft-style Home: search, quick links, Starred, Folders, Tags and Trash.
 //
 
 import SwiftUI
@@ -17,6 +17,10 @@ struct HomeActions {
     var folderSettings: (Project) -> Void = { _ in }
     var dailyNote: () -> Void = {}
     var settings: () -> Void = {}
+    var openStarred: () -> Void = {}
+    var openFolders: () -> Void = {}
+    var openTags: () -> Void = {}
+    var openTodo: () -> Void = {}
 }
 
 struct HomeView: View {
@@ -25,54 +29,109 @@ struct HomeView: View {
 
     var body: some View {
         List {
-            Section {
-                HomeSearchRow(action: actions.search)
-                    .listRowSeparator(.hidden)
-                    .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 12, trailing: 16))
-            }
+            searchSection
+            quickLinksSection
+            starredSection
+            foldersSection
+            tagsSection
+            trashSection
+        }
+        .listStyle(.plain)
+        .listSectionSpacing(.compact)
+        .scrollContentBackground(.hidden)
+        .background(SwiftUI.Color(uiColor: .systemBackground))
+        .navigationTitle(NSLocalizedString("Home", comment: "Home screen title"))
+        .tint(SwiftUI.Color(uiColor: .mainTheme))
+        .toolbar { toolbarContent }
+    }
 
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .topBarTrailing) {
+            Menu {
+                Button {
+                    actions.settings()
+                } label: {
+                    Label(NSLocalizedString("Settings", comment: ""), systemImage: "gearshape")
+                }
+                Button {
+                    actions.newNote(nil)
+                } label: {
+                    Label(NSLocalizedString("New Note", comment: ""), systemImage: "square.and.pencil")
+                }
+            } label: {
+                Label(NSLocalizedString("More", comment: ""), systemImage: "ellipsis")
+            }
+        }
+
+        ToolbarItemGroup(placement: .bottomBar) {
+            Button(NSLocalizedString("Home", comment: ""), systemImage: "house.fill") {}
+                .disabled(true)
+                .accessibilityAddTraits(.isSelected)
+            Button(NSLocalizedString("Todo", comment: ""), systemImage: "checkmark.square") {
+                actions.openTodo()
+            }
+            Button(NSLocalizedString("Daily Notes", comment: ""), systemImage: "calendar") {
+                actions.dailyNote()
+            }
+        }
+
+        if #available(iOS 26.0, *) {
+            ToolbarSpacer(.flexible, placement: .bottomBar)
+        } else {
+            ToolbarItem(placement: .bottomBar) { Spacer() }
+        }
+
+        ToolbarItem(placement: .bottomBar) {
+            Button(NSLocalizedString("New Note", comment: ""), systemImage: "plus") {
+                actions.newNote(nil)
+            }
+            .fontWeight(.semibold)
+        }
+    }
+
+    private var searchSection: some View {
+        Section {
+            HomeSearchRow(action: actions.search)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 4, leading: 16, bottom: 12, trailing: 16))
+        }
+    }
+
+    private var quickLinksSection: some View {
             Section {
                 ForEach(model.quickLinks) { link in
                     Button {
                         actions.openSidebarItem(link.sidebarItem)
                     } label: {
-                        HomeRow(
-                            title: link.title,
-                            systemImage: link.systemImage,
-                            iconStyle: .accent
-                        )
+                        HomeRow(title: link.title, systemImage: link.systemImage, iconStyle: .quickLink, showsChevron: false)
                     }
                     .buttonStyle(.plain)
                 }
             }
+    }
 
+    @ViewBuilder
+    private var starredSection: some View {
             if !model.starred.isEmpty {
                 Section {
-                    if !model.isCollapsed(.starred) {
-                        ForEach(model.starred) { item in
-                            Button {
-                                actions.openNote(item.note)
-                            } label: {
-                                HomeNoteRow(item: item)
-                            }
-                            .buttonStyle(.plain)
+                    ForEach(model.starred) { item in
+                        Button {
+                            actions.openNote(item.note)
+                        } label: {
+                            HomeRow(title: item.title, systemImage: item.note.isEncrypted() ? "lock.doc" : "doc.text", iconStyle: .document, showsChevron: false)
                         }
+                        .buttonStyle(.plain)
                     }
                 } header: {
-                    HomeSectionHeader(
-                        title: NSLocalizedString("Starred", comment: "Home section"),
-                        count: model.starred.count,
-                        isCollapsed: model.isCollapsed(.starred)
-                    ) {
-                        model.toggle(section: .starred)
-                    }
+                    HomeSectionHeader(title: NSLocalizedString("Starred", comment: "Home section"), action: actions.openStarred)
                 }
             }
+    }
 
+    private var foldersSection: some View {
             Section {
-                if model.isCollapsed(.folders) {
-                    EmptyView()
-                } else if model.folders.isEmpty {
+                if model.folders.isEmpty {
                     Text(model.isLoaded
                          ? NSLocalizedString("No folders yet", comment: "Home empty state")
                          : NSLocalizedString("Loading…", comment: "Home loading state"))
@@ -81,18 +140,19 @@ struct HomeView: View {
                         .padding(.vertical, 6)
                 } else {
                     ForEach(model.folders) { folder in
-                        HomeOutlineRow(
-                            title: folder.title,
-                            systemImage: folder.systemImage,
-                            depth: folder.depth,
-                            isExpandable: folder.isExpandable,
-                            isExpanded: folder.isExpanded,
-                            iconStyle: .folder,
-                            tint: folder.tint.map { SwiftUI.Color(uiColor: $0) },
-                            open: { actions.openFolder(folder.project) },
-                            toggle: { model.toggle(folder: folder) }
-                        )
-                        .id(folder.id)
+                        Button {
+                            actions.openFolder(folder.project)
+                        } label: {
+                            HomeRow(
+                                title: folder.title,
+                                systemImage: folder.systemImage,
+                                iconStyle: .folder,
+                                tint: folder.tint.map { SwiftUI.Color(uiColor: $0) },
+                                count: folder.noteCount,
+                                showsChevron: true
+                            )
+                        }
+                        .buttonStyle(.plain)
                         .contextMenu {
                             Button {
                                 actions.newNote(folder.project)
@@ -119,83 +179,56 @@ struct HomeView: View {
                     }
                 }
             } header: {
-                HomeSectionHeader(
-                    title: NSLocalizedString("Folders", comment: "Home section"),
-                    count: model.folders.filter { $0.depth == 0 }.count,
-                    isCollapsed: model.isCollapsed(.folders)
-                ) {
-                    model.toggle(section: .folders)
-                }
+                HomeSectionHeader(title: NSLocalizedString("Folders", comment: "Home section"), action: actions.openFolders)
             }
+    }
 
+    @ViewBuilder
+    private var tagsSection: some View {
             if model.showsTags && !model.tags.isEmpty {
                 Section {
-                    ForEach(model.isCollapsed(.tags) ? [] : model.tags) { tag in
-                        HomeOutlineRow(
-                            title: tag.name,
-                            systemImage: "number",
-                            depth: tag.depth,
-                            isExpandable: tag.isExpandable,
-                            isExpanded: tag.isExpanded,
-                            iconStyle: .tag,
-                            open: { actions.openTag(tag.fullName) },
-                            toggle: { model.toggle(tag: tag) }
-                        )
+                    ForEach(model.tags.filter { $0.depth == 0 }) { tag in
+                        Button {
+                            actions.openTag(tag.fullName)
+                        } label: {
+                            HomeRow(title: tag.name, systemImage: "number", iconStyle: .tag, showsChevron: true)
+                        }
+                        .buttonStyle(.plain)
                     }
                 } header: {
-                    HomeSectionHeader(
-                        title: NSLocalizedString("Tags", comment: "Home section"),
-                        count: model.tags.filter { $0.depth == 0 }.count,
-                        isCollapsed: model.isCollapsed(.tags)
-                    ) {
-                        model.toggle(section: .tags)
-                    }
+                    HomeSectionHeader(title: NSLocalizedString("Tags", comment: "Home section"), action: actions.openTags)
                 }
             }
-        }
-        .animation(.snappy, value: model.collapsedSections)
-        .listStyle(.plain)
-        .listSectionSpacing(.compact)
-        .scrollContentBackground(.hidden)
-        .background(SwiftUI.Color(uiColor: .systemBackground))
-        .navigationTitle(NSLocalizedString("Home", comment: "Home screen title"))
-        .tint(SwiftUI.Color(uiColor: .mainTheme))
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button(NSLocalizedString("Settings", comment: ""), systemImage: "gearshape") {
-                    actions.settings()
-                }
-            }
+    }
 
-            ToolbarItemGroup(placement: .bottomBar) {
-                Button(NSLocalizedString("Daily Note", comment: ""), systemImage: "calendar") {
-                    actions.dailyNote()
+    @ViewBuilder
+    private var trashSection: some View {
+            if let trash = model.trashLink {
+                Section {
+                    Button {
+                        actions.openSidebarItem(trash.sidebarItem)
+                    } label: {
+                        HomeRow(title: trash.title, systemImage: trash.systemImage, iconStyle: .tag, count: model.trashCount, showsChevron: false)
+                    }
+                    .buttonStyle(.plain)
                 }
-                Spacer()
-                Button(NSLocalizedString("Search", comment: ""), systemImage: "magnifyingglass") {
-                    actions.search()
-                }
-                Spacer()
-                Button(NSLocalizedString("New Note", comment: ""), systemImage: "square.and.pencil") {
-                    actions.newNote(nil)
-                }
-                .fontWeight(.semibold)
             }
-        }
     }
 }
 
 // MARK: - Rows
 
 enum HomeIconStyle {
-    case accent
+    case quickLink
+    case document
     case folder
     case tag
 
     var foreground: AnyShapeStyle {
         switch self {
-        case .accent: return AnyShapeStyle(.tint)
-        case .folder: return AnyShapeStyle(SwiftUI.Color(uiColor: .systemBlue).opacity(0.9))
+        case .quickLink: return AnyShapeStyle(.secondary)
+        case .document: return AnyShapeStyle(.secondary)
+        case .folder: return AnyShapeStyle(SwiftUI.Color(uiColor: .systemBlue))
         case .tag: return AnyShapeStyle(.secondary)
         }
     }
@@ -209,7 +242,7 @@ struct HomeSearchRow: View {
             HStack(spacing: 8) {
                 SwiftUI.Image(systemName: "magnifyingglass")
                     .foregroundStyle(.secondary)
-                Text(NSLocalizedString("Search or create", comment: ""))
+                Text(NSLocalizedString("Search", comment: ""))
                     .foregroundStyle(.secondary)
                 Spacer(minLength: 0)
             }
@@ -224,44 +257,35 @@ struct HomeSearchRow: View {
     }
 }
 
+/// Craft-style section header: the title is a link to the full screen ("Starred ›").
 struct HomeSectionHeader: View {
     var title: String
-    var count: Int? = nil
-    var isCollapsed: Bool = false
-    var toggle: (() -> Void)? = nil
+    var action: (() -> Void)? = nil
 
     var body: some View {
         Button {
-            toggle?()
+            action?()
         } label: {
             HStack(spacing: 6) {
                 Text(title)
                     .font(.headline)
                     .foregroundStyle(.primary)
-                if let count, count > 0 {
-                    Text("\(count)")
-                        .font(.subheadline)
-                        .foregroundStyle(.tertiary)
-                }
-                if toggle != nil {
-                    SwiftUI.Image(systemName: "chevron.down")
+                if action != nil {
+                    SwiftUI.Image(systemName: "chevron.right")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(.tertiary)
-                        .rotationEffect(.degrees(isCollapsed ? -90 : 0))
                 }
                 Spacer(minLength: 0)
             }
             .textCase(nil)
-            .padding(.top, 8)
+            .padding(.top, 10)
             .padding(.bottom, 2)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(toggle == nil)
+        .disabled(action == nil)
         .accessibilityLabel(title)
-        .accessibilityHint(toggle == nil ? "" : (isCollapsed
-            ? NSLocalizedString("Expands the section", comment: "Home accessibility")
-            : NSLocalizedString("Collapses the section", comment: "Home accessibility")))
+        .accessibilityHint(action == nil ? "" : NSLocalizedString("Opens the full list", comment: "Home accessibility"))
     }
 }
 
@@ -269,57 +293,38 @@ struct HomeRow: View {
     var title: String
     var systemImage: String
     var iconStyle: HomeIconStyle
+    var tint: SwiftUI.Color? = nil
+    var count: Int? = nil
+    var showsChevron: Bool = true
 
     var body: some View {
         HStack(spacing: 12) {
             SwiftUI.Image(systemName: systemImage)
                 .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(iconStyle.foreground)
+                .foregroundStyle(tint.map { AnyShapeStyle($0) } ?? iconStyle.foreground)
                 .frame(width: 28, height: 28)
             Text(title)
                 .font(.body)
                 .foregroundStyle(.primary)
                 .lineLimit(1)
             Spacer(minLength: 0)
-            SwiftUI.Image(systemName: "chevron.right")
-                .font(.footnote.weight(.semibold))
-                .foregroundStyle(.tertiary)
-        }
-        .padding(.vertical, 2)
-        .contentShape(Rectangle())
-    }
-}
-
-struct HomeNoteRow: View {
-    var item: HomeLibraryModel.StarredNote
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 12) {
-            SwiftUI.Image(systemName: item.note.isEncrypted() ? "lock.doc" : "doc.text")
-                .font(.system(size: 17, weight: .medium))
-                .foregroundStyle(.secondary)
-                .frame(width: 28, height: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.body.weight(.semibold))
-                    .foregroundStyle(.primary)
-                    .lineLimit(1)
-                Text(item.subtitle)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .lineLimit(1)
+            if let count, count > 0 {
+                Text("\(count)")
+                    .font(.body)
+                    .foregroundStyle(.tertiary)
             }
-            Spacer(minLength: 0)
-            Text(item.detail)
-                .font(.footnote)
-                .foregroundStyle(.tertiary)
-                .padding(.top, 4)
+            if showsChevron {
+                SwiftUI.Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
         }
         .padding(.vertical, 2)
         .contentShape(Rectangle())
     }
 }
 
+/// Row with a disclosure control, used by the Tags screen for nested tags.
 struct HomeOutlineRow: View {
     var title: String
     var systemImage: String
@@ -365,8 +370,12 @@ struct HomeOutlineRow: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel(isExpanded
-                    ? NSLocalizedString("Collapse folder", comment: "Sidebar accessibility")
-                    : NSLocalizedString("Expand folder", comment: "Sidebar accessibility"))
+                    ? NSLocalizedString("Collapse", comment: "Sidebar accessibility")
+                    : NSLocalizedString("Expand", comment: "Sidebar accessibility"))
+            } else {
+                SwiftUI.Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(.tertiary)
             }
         }
         .padding(.vertical, 2)

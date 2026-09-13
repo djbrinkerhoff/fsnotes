@@ -27,6 +27,7 @@ final class HomeLibraryModel {
         var depth: Int
         var isExpandable: Bool
         var isExpanded: Bool
+        var noteCount: Int = 0
 
         var title: String { project.label }
 
@@ -63,32 +64,18 @@ final class HomeLibraryModel {
     }
 
     var quickLinks = [QuickLink]()
+    var trashLink: QuickLink?
+    var trashCount = 0
     var starred = [StarredNote]()
+    /// Top-level folders only (Craft's Home lists roots; nested folders live on the Folders screen).
     var folders = [FolderNode]()
     var tags = [TagNode]()
     var showsTags = UserDefaultsManagement.inlineTags
     var isLoaded = false
 
-    enum Section: String, CaseIterable {
-        case starred
-        case folders
-        case tags
-    }
-
-    var collapsedSections = Set(UserDefaultsManagement.collapsedHomeSections.compactMap { Section(rawValue: $0) })
-
-    func isCollapsed(_ section: Section) -> Bool {
-        collapsedSections.contains(section)
-    }
-
-    func toggle(section: Section) {
-        if collapsedSections.contains(section) {
-            collapsedSections.remove(section)
-        } else {
-            collapsedSections.insert(section)
-        }
-        UserDefaultsManagement.collapsedHomeSections = collapsedSections.map(\.rawValue).sorted()
-    }
+    /// Notes per folder URL, computed once per reload.
+    private var noteCounts = [URL: Int]()
+    private var availableProjects = [Project]()
 
     @ObservationIgnored nonisolated(unsafe) private var observer: NSObjectProtocol?
 
@@ -118,12 +105,67 @@ final class HomeLibraryModel {
 
         let sidebar = UIApplication.getVC().sidebarTableView?.sidebar ?? Sidebar()
 
-        quickLinks = (sidebar.items.first ?? []).map { QuickLink(sidebarItem: $0) }
-        folders = makeFolders(from: storage.getAvailableProjects())
+        let systemItems = sidebar.items.first ?? []
+        quickLinks = systemItems.filter { $0.type != .Trash }.map { QuickLink(sidebarItem: $0) }
+        trashLink = systemItems.first(where: { $0.type == .Trash }).map { QuickLink(sidebarItem: $0) }
+
+        var counts = [URL: Int]()
+        var trashed = 0
+        for note in storage.noteList {
+            if note.isTrash() {
+                trashed += 1
+            } else {
+                counts[note.project.url, default: 0] += 1
+            }
+        }
+        noteCounts = counts
+        trashCount = trashed
+
+        availableProjects = storage.getAvailableProjects()
+        folders = children(of: nil).map { node(for: $0, depth: 0) }
         showsTags = UserDefaultsManagement.inlineTags
         tags = showsTags ? makeTags(from: storage.noteList) : []
         starred = makeStarred(from: storage)
         isLoaded = UIApplication.getVC().isLoadedDB || !folders.isEmpty || !starred.isEmpty
+    }
+
+    // MARK: - Folder hierarchy
+
+    /// Visible child folders of a folder (or the top-level folders when nil).
+    func children(of parent: Project?) -> [Project] {
+        let list: [Project]
+        if let parent {
+            list = availableProjects.filter { $0.parent === parent }
+        } else {
+            list = availableProjects.filter { project in
+                guard let up = project.parent else { return true }
+                return up.isDefault || !availableProjects.contains(where: { $0 === up })
+            }
+        }
+        return list.sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
+    }
+
+    func hasChildren(_ project: Project) -> Bool {
+        availableProjects.contains { $0.parent === project }
+    }
+
+    /// Notes directly inside a folder plus everything nested below it.
+    func noteCount(for project: Project) -> Int {
+        var total = noteCounts[project.url] ?? 0
+        for child in children(of: project) {
+            total += noteCount(for: child)
+        }
+        return total
+    }
+
+    func node(for project: Project, depth: Int) -> FolderNode {
+        FolderNode(
+            project: project,
+            depth: depth,
+            isExpandable: hasChildren(project),
+            isExpanded: project.isExpanded,
+            noteCount: noteCount(for: project)
+        )
     }
 
     // MARK: - Expansion
@@ -168,45 +210,6 @@ final class HomeLibraryModel {
     }
 
     // MARK: - Builders
-
-    private func makeFolders(from projects: [Project]) -> [FolderNode] {
-        var visited = Set<URL>()
-        var result = [FolderNode]()
-
-        func sorted(_ list: [Project]) -> [Project] {
-            list.sorted {
-                $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending
-            }
-        }
-
-        func append(_ project: Project, depth: Int) {
-            guard !visited.contains(project.url) else { return }
-            visited.insert(project.url)
-
-            let children = sorted(projects.filter { $0.parent === project })
-            result.append(
-                FolderNode(
-                    project: project,
-                    depth: depth,
-                    isExpandable: !children.isEmpty,
-                    isExpanded: project.isExpanded
-                )
-            )
-
-            if project.isExpanded {
-                children.forEach { append($0, depth: depth + 1) }
-            }
-        }
-
-        let roots = projects.filter { project in
-            guard let parent = project.parent else { return true }
-            return parent.isDefault || !projects.contains(where: { $0 === parent })
-        }
-
-        sorted(roots).forEach { append($0, depth: 0) }
-
-        return result
-    }
 
     private func makeTags(from notes: [Note]) -> [TagNode] {
         final class Node {

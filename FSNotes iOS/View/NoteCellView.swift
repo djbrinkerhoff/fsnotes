@@ -232,8 +232,8 @@ class NoteCellView: SwipeTableViewCell {
             pin.image = UIImage(systemName: name, withConfiguration: symbolConfig)
             pin.tintColor = UIColor.mainTheme
         } else if note.isPinned {
-            pin.image = UIImage(systemName: "pin.fill", withConfiguration: symbolConfig)
-            pin.tintColor = UIColor.mainTheme
+            pin.image = UIImage(systemName: "star.fill", withConfiguration: symbolConfig)
+            pin.tintColor = UIColor.systemYellow
         } else {
             pin.image = UIImage(systemName: "doc.text", withConfiguration: symbolConfig)
             pin.tintColor = .secondaryLabel
@@ -299,12 +299,22 @@ class NoteCellView: SwipeTableViewCell {
     }
 
     public func attachHeaders(note: Note) {
-        if let title = note.getTitle() {
-            self.title.text = title
-            self.preview.text = note.preview
-        } else {
+        guard let title = note.getTitle() else {
             self.title.text = String()
             self.preview.text = String()
+            return
+        }
+
+        self.title.text = title
+
+        let showsFolder = tableView?.showsFolderInSubtitle ?? false
+        let folder = note.project.getFullLabel()
+        let snippet = note.preview.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if showsFolder && !folder.isEmpty {
+            self.preview.text = snippet.isEmpty ? folder : "\(folder) · \(snippet)"
+        } else {
+            self.preview.text = snippet
         }
     }
 
