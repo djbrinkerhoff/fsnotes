@@ -280,6 +280,7 @@ class SidebarTableView: UITableView,
         }
 
         vc.buildSearchQuery()
+        vc.notesTable.displayMode = sidebarItem.project?.settings.displayMode ?? .list
         vc.reloadNotesTable() {
             DispatchQueue.main.async {
                 vc.notesTable.hideLoader()
@@ -329,6 +330,7 @@ class SidebarTableView: UITableView,
 
         vc.configureNavMenu(for: sidebarItem)
         vc.buildSearchQuery()
+        vc.notesTable.displayMode = sidebarItem.project?.settings.displayMode ?? .list
         vc.reloadNotesTable() {
             DispatchQueue.main.async {
                 vc.setNavTitle(folder: name)

@@ -79,6 +79,13 @@ extension ViewController: UIDocumentPickerDelegate {
         // Build actions
 
         var actions = [UIAction]()
+        var viewMenus = [UIMenuElement]()
+
+        if let project = project, sidebarItem.type != .Tag {
+            viewMenus.append(makeSortMenu(for: project, sidebarItem: sidebarItem))
+            viewMenus.append(makeDisplayMenu(for: project, sidebarItem: sidebarItem))
+        }
+
         if popoverActions.contains(.removeFolder) {
             let title = NSLocalizedString("Remove Folder", comment: "Main view popover table")
             actions.append(UIAction(title: title, image: UIImage(systemName: "trash"), identifier: UIAction.Identifier("removeFolder"), attributes: .destructive, handler: handler))
@@ -173,7 +180,86 @@ extension ViewController: UIDocumentPickerDelegate {
             mainTitle = sidebarItem.getName()
         }
 
-        return UIMenu(title: mainTitle,  children: actions)
+        var children: [UIMenuElement] = viewMenus.isEmpty ? [] : [UIMenu(options: .displayInline, children: viewMenus)]
+        children.append(UIMenu(options: .displayInline, children: actions))
+
+        return UIMenu(title: mainTitle, children: children)
+    }
+
+    /// Craft-style "Sort by" submenu backed by the folder's own sort settings.
+    private func makeSortMenu(for project: Project, sidebarItem: SidebarItem) -> UIMenu {
+        let current = project.settings.sortBy == .none
+            ? Storage.shared().getSortByState()
+            : project.settings.sortBy
+        let direction = project.settings.sortBy == .none
+            ? Storage.shared().getSortDirectionState()
+            : project.settings.sortDirection
+
+        let options: [(SortBy, String, String)] = [
+            (.modificationDate, NSLocalizedString("Date Modified", comment: "Sort by"), "clock"),
+            (.creationDate, NSLocalizedString("Date Created", comment: "Sort by"), "calendar"),
+            (.title, NSLocalizedString("Title", comment: "Sort by"), "textformat")
+        ]
+
+        let sortActions = options.map { option in
+            UIAction(title: option.1, image: UIImage(systemName: option.2), state: current == option.0 ? .on : .off) { [weak self] _ in
+                project.settings.sortBy = option.0
+                project.settings.sortDirection = direction
+                self?.applySortChange(for: project, sidebarItem: sidebarItem)
+            }
+        }
+
+        let directionActions = [
+            UIAction(title: NSLocalizedString("Newest First", comment: "Sort direction"), image: UIImage(systemName: "arrow.down"), state: direction == .desc ? .on : .off) { [weak self] _ in
+                project.settings.sortBy = current
+                project.settings.sortDirection = .desc
+                self?.applySortChange(for: project, sidebarItem: sidebarItem)
+            },
+            UIAction(title: NSLocalizedString("Oldest First", comment: "Sort direction"), image: UIImage(systemName: "arrow.up"), state: direction == .asc ? .on : .off) { [weak self] _ in
+                project.settings.sortBy = current
+                project.settings.sortDirection = .asc
+                self?.applySortChange(for: project, sidebarItem: sidebarItem)
+            }
+        ]
+
+        return UIMenu(
+            title: NSLocalizedString("Sort by", comment: ""),
+            image: UIImage(systemName: "arrow.up.arrow.down"),
+            children: [
+                UIMenu(options: [.displayInline, .singleSelection], children: sortActions),
+                UIMenu(options: [.displayInline, .singleSelection], children: directionActions)
+            ]
+        )
+    }
+
+    private func applySortChange(for project: Project, sidebarItem: SidebarItem) {
+        project.saveSettings()
+        storage.buildSortBy()
+        reloadNotesTable()
+        configureNavMenu(for: sidebarItem)
+    }
+
+    /// Craft-style "Display as" submenu.
+    private func makeDisplayMenu(for project: Project, sidebarItem: SidebarItem) -> UIMenu {
+        let current = project.settings.displayMode
+
+        let modeActions = NoteListDisplayMode.allCases.map { mode in
+            UIAction(title: mode.title, image: UIImage(systemName: mode.systemImage), state: current == mode ? .on : .off) { [weak self] _ in
+                guard let self = self else { return }
+                project.settings.displayMode = mode
+                project.saveSettings()
+                self.notesTable.displayMode = mode
+                self.notesTable.reloadData()
+                self.configureNavMenu(for: sidebarItem)
+            }
+        }
+
+        return UIMenu(
+            title: NSLocalizedString("Display as", comment: ""),
+            image: UIImage(systemName: current.systemImage),
+            options: .singleSelection,
+            children: modeActions
+        )
     }
 
 

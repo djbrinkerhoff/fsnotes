@@ -852,6 +852,7 @@
 		16AF27A428D14A27B392DEAD /* NoteListDisplayMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6651835DE43619C289914 /* NoteListDisplayMode.swift */; };
 		9F85D2BB2594461ABEC685FE /* NoteListDisplayMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6651835DE43619C289914 /* NoteListDisplayMode.swift */; };
 		BB54EB3E664846D3B610E61C /* NoteListDisplayMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19B6651835DE43619C289914 /* NoteListDisplayMode.swift */; };
+		43B46EC28B9C415C8727AB9F /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6EF9ED39DDF4D1D96A88311 /* OnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1292,6 +1293,7 @@
 		6AF858643A124FCBA382F4AF /* ViewController+Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+Home.swift"; sourceTree = "<group>"; };
 		5B5BFEAE172843BF8CF5D0A8 /* FolderColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderColor.swift; sourceTree = "<group>"; };
 		19B6651835DE43619C289914 /* NoteListDisplayMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteListDisplayMode.swift; sourceTree = "<group>"; };
+		F6EF9ED39DDF4D1D96A88311 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1949,6 +1951,7 @@
 		D7ED3FFB20CD0AA3001438EE /* View */ = {
 			isa = PBXGroup;
 			children = (
+				F6EF9ED39DDF4D1D96A88311 /* OnboardingView.swift */,
 				E30D79CF39354ED29B06AAA7 /* HomeViewController.swift */,
 				F37671A727B14FC49DA3F819 /* HomeView.swift */,
 				D7BDFE6B201F6DC200897A58 /* EditTextView.swift */,
@@ -2461,6 +2464,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				43B46EC28B9C415C8727AB9F /* OnboardingView.swift in Sources */,
 				882F7337205E4553A29C1B6B /* NoteListDisplayMode.swift in Sources */,
 				B5D57D3A94D943AB94C686E2 /* FolderColor.swift in Sources */,
 				7C6F548BAA6F463FA06BC86C /* ViewController+Home.swift in Sources */,

@@ -32,6 +32,15 @@ extension UserDefaultsManagement {
         }
     }
 
+    static var didShowOnboarding: Bool {
+        get {
+            return shared?.bool(forKey: "didShowCraftOnboarding") ?? false
+        }
+        set {
+            shared?.set(newValue, forKey: "didShowCraftOnboarding")
+        }
+    }
+
     static var appIcon: Int {
         get {
             if let theme = shared?.integer(forKey: Constants.appIcon) {

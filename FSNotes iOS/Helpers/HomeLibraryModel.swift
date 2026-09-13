@@ -34,8 +34,15 @@ final class HomeLibraryModel {
             if project.isEncrypted {
                 return project.isLocked() ? "lock.fill" : "lock.open.fill"
             }
+            if let icon = project.settings.folderIcon, !icon.isEmpty {
+                return icon
+            }
             return isExpanded && isExpandable ? "folder.fill" : "folder"
         }
+
+        var tint: UIColor? { project.settings.folderColor?.platformColor }
+        var color: FolderColor? { project.settings.folderColor }
+        var icon: String? { project.settings.folderIcon }
     }
 
     struct TagNode: Identifiable {
@@ -117,6 +124,26 @@ final class HomeLibraryModel {
         }
         UserDefaultsManagement.expandedSidebarTags = expanded.sorted()
         reload()
+    }
+
+    // MARK: - Appearance
+
+    func setColor(_ color: FolderColor?, for folder: FolderNode) {
+        folder.project.settings.folderColor = color
+        folder.project.saveSettings()
+        didChangeAppearance()
+    }
+
+    func setIcon(_ icon: String?, for folder: FolderNode) {
+        folder.project.settings.folderIcon = (icon == FolderIcon.defaultName) ? nil : icon
+        folder.project.saveSettings()
+        didChangeAppearance()
+    }
+
+    private func didChangeAppearance() {
+        UIApplication.getVC().sidebarTableView?.reloadData()
+        reload()
+        LibraryNotifier.libraryDidChange()
     }
 
     // MARK: - Builders

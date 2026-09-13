@@ -78,6 +78,7 @@ struct HomeView: View {
                             isExpandable: folder.isExpandable,
                             isExpanded: folder.isExpanded,
                             iconStyle: .folder,
+                            tint: folder.tint.map { SwiftUI.Color(uiColor: $0) },
                             open: { actions.openFolder(folder.project) },
                             toggle: { model.toggle(folder: folder) }
                         )
@@ -87,6 +88,17 @@ struct HomeView: View {
                             } label: {
                                 Label(NSLocalizedString("New Note", comment: ""), systemImage: "square.and.pencil")
                             }
+
+                            FolderColorMenu(selected: folder.color) { color in
+                                model.setColor(color, for: folder)
+                            }
+
+                            FolderIconMenu(selected: folder.icon) { icon in
+                                model.setIcon(icon, for: folder)
+                            }
+
+                            Divider()
+
                             Button {
                                 actions.folderSettings(folder.project)
                             } label: {
@@ -263,8 +275,14 @@ struct HomeOutlineRow: View {
     var isExpandable: Bool
     var isExpanded: Bool
     var iconStyle: HomeIconStyle
+    var tint: SwiftUI.Color? = nil
     var open: () -> Void
     var toggle: () -> Void
+
+    private var iconForeground: AnyShapeStyle {
+        if let tint { return AnyShapeStyle(tint) }
+        return iconStyle.foreground
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -272,7 +290,7 @@ struct HomeOutlineRow: View {
                 HStack(spacing: 12) {
                     SwiftUI.Image(systemName: systemImage)
                         .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(iconStyle.foreground)
+                        .foregroundStyle(iconForeground)
                         .frame(width: 28, height: 28)
                     Text(title)
                         .font(.body)
@@ -302,5 +320,65 @@ struct HomeOutlineRow: View {
         .padding(.vertical, 2)
         .padding(.leading, CGFloat(depth) * 24)
         .animation(.snappy, value: isExpanded)
+    }
+}
+
+// MARK: - Folder appearance menus
+
+struct FolderColorMenu: View {
+    var selected: FolderColor?
+    var onSelect: (FolderColor?) -> Void
+
+    var body: some View {
+        Menu {
+            Button {
+                onSelect(nil)
+            } label: {
+                Label(NSLocalizedString("None", comment: "Folder color"), systemImage: selected == nil ? "checkmark.circle" : "circle")
+            }
+
+            ForEach(FolderColor.allCases, id: \.rawValue) { color in
+                Button {
+                    onSelect(color)
+                } label: {
+                    Label {
+                        Text(color.title)
+                    } icon: {
+                        SwiftUI.Image(systemName: selected == color ? "checkmark.circle.fill" : "circle.fill")
+                            .foregroundStyle(SwiftUI.Color(uiColor: color.platformColor))
+                    }
+                }
+            }
+        } label: {
+            Label(NSLocalizedString("Folder Color", comment: ""), systemImage: "paintpalette")
+        }
+    }
+}
+
+struct FolderIconMenu: View {
+    var selected: String?
+    var onSelect: (String?) -> Void
+
+    var body: some View {
+        Menu {
+            ForEach(FolderIcon.choices, id: \.self) { name in
+                Button {
+                    onSelect(name)
+                } label: {
+                    Label {
+                        Text(name == FolderIcon.defaultName
+                             ? NSLocalizedString("Default", comment: "Folder icon")
+                             : name.replacingOccurrences(of: ".", with: " ").capitalized)
+                        if (selected ?? FolderIcon.defaultName) == name {
+                            SwiftUI.Image(systemName: "checkmark")
+                        }
+                    } icon: {
+                        SwiftUI.Image(systemName: name)
+                    }
+                }
+            }
+        } label: {
+            Label(NSLocalizedString("Folder Icon", comment: ""), systemImage: "square.grid.2x2")
+        }
     }
 }

@@ -51,6 +51,27 @@ final class HomeViewController: UIHostingController<HomeView> {
         model.reload()
     }
 
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+
+        presentOnboardingIfNeeded()
+    }
+
+    // MARK: - Onboarding
+
+    private func presentOnboardingIfNeeded() {
+        guard !UserDefaultsManagement.didShowOnboarding, presentedViewController == nil else { return }
+
+        let onboarding = UIHostingController(rootView: OnboardingView { [weak self] in
+            UserDefaultsManagement.didShowOnboarding = true
+            self?.dismiss(animated: true)
+        })
+        onboarding.isModalInPresentation = true
+        onboarding.modalPresentationStyle = .pageSheet
+
+        present(onboarding, animated: true)
+    }
+
     // MARK: - Actions
 
     private func openSearch() {

@@ -45,11 +45,26 @@ of scope.
 - Notes list rows: title / snippet / date hierarchy tuned to Craft.
 - Editor content column: centered line width by default.
 
-## Phase 2 (next)
+## Phase 2 (this branch)
 
-- iOS: grid ("Display as") option for the notes list, per-folder colors and
-  icons stored in `ProjectSettings`, Craft-style onboarding carousel.
-- macOS: Home page in the content area (Starred + recent), folder view as a
-  card grid, breadcrumb title bar, inspector panel for note metadata.
-- Both: block-style paragraph handles and inline "+" between paragraphs on
-  top of the Markdown text storage.
+- Shared: `FolderColor`, `FolderIcon`, `NoteListDisplayMode`; `ProjectSettings`
+  gained `folderColor`, `folderIcon`, `displayMode` (persisted with the other
+  folder settings). New `SidebarItemType.Home`.
+- iOS: folder rows on Home use the folder color and icon; long-press a folder
+  for "Folder Color" / "Folder Icon"; Folder Settings has an Appearance
+  section. The notes list "…" menu gained "Sort by" and "Display as"
+  (List, Compact, Cards). Craft-style onboarding carousel on first launch.
+- macOS: "Home" sidebar entry with an overview canvas (Starred, Recent,
+  Folders); folder selections with no open note show a card grid of the
+  notes; colored/custom folder icons with context-menu pickers; breadcrumb
+  title ("Folder › Title"); note inspector popover (dates, counts, tags,
+  pinned, encryption, reveal in Finder).
+
+## Later
+
+- Block-style paragraph handles and an inline "+" between paragraphs on top of
+  the Markdown text storage. Deliberately not started: it touches the custom
+  NSTextStorage/UITextView pipeline that highlighting, todo toggles and
+  attachments depend on, and needs its own design pass.
+- A true multi-column grid on iPhone (the current "Cards" mode is a single
+  column, which matches Craft on phone; iPad could use two columns).
