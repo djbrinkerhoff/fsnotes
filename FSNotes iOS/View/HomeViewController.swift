@@ -54,13 +54,19 @@ final class HomeViewController: UIHostingController<HomeView> {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
 
-        presentOnboardingIfNeeded()
+        // Give the window a moment to become key after launch before presenting.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
+            self?.presentOnboardingIfNeeded()
+        }
     }
 
     // MARK: - Onboarding
 
     private func presentOnboardingIfNeeded() {
-        guard !UserDefaultsManagement.didShowOnboarding, presentedViewController == nil else { return }
+        guard !UserDefaultsManagement.didShowOnboarding,
+              presentedViewController == nil,
+              navigationController?.topViewController === self,
+              view.window != nil else { return }
 
         let onboarding = UIHostingController(rootView: OnboardingView { [weak self] in
             UserDefaultsManagement.didShowOnboarding = true
