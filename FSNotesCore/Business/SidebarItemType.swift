@@ -19,6 +19,7 @@ enum SidebarItemType: Int {
     case ProjectEncryptedLocked = 12
     case ProjectEncryptedUnlocked = 13
     case Separator = 14
+    case Home = 15
 
     public var icon: String? {
         switch self {
@@ -34,6 +35,7 @@ enum SidebarItemType: Int {
         case .ProjectEncryptedLocked: return "sidebar_project_encrypted_locked"
         case .ProjectEncryptedUnlocked: return "sidebar_project_encrypted_unlocked"
         case .Separator: return nil
+        case .Home: return nil
         }
     }
 
@@ -51,6 +53,7 @@ enum SidebarItemType: Int {
         case .Untagged: return "tag.slash"
         case .ProjectEncryptedLocked: return "lock.fill"
         case .ProjectEncryptedUnlocked: return "lock.open.fill"
+        case .Home: return "house"
         }
     }
 }

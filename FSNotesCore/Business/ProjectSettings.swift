@@ -26,6 +26,26 @@ public class ProjectSettings: NSObject, NSSecureCoding {
     public var notesPreview = [String]()
     public var notesAPI: [String: String]?
 
+    // Craft-style appearance
+    public var colorName: String?
+    public var iconName: String?
+    public var displayModeName: String?
+
+    public var folderColor: FolderColor? {
+        get { colorName.flatMap { FolderColor(rawValue: $0) } }
+        set { colorName = newValue?.rawValue }
+    }
+
+    public var folderIcon: String? {
+        get { iconName }
+        set { iconName = newValue }
+    }
+
+    public var displayMode: NoteListDisplayMode {
+        get { displayModeName.flatMap { NoteListDisplayMode(rawValue: $0) } ?? .list }
+        set { displayModeName = newValue == .list ? nil : newValue.rawValue }
+    }
+
     public override init() {/*_*/}
     
     public required init(coder aDecoder: NSCoder) {
@@ -71,6 +91,18 @@ public class ProjectSettings: NSObject, NSSecureCoding {
         if let value = aDecoder.decodeObject(of: [NSDictionary.self, NSString.self], forKey: "notesAPI") as? [String: String] {
             notesAPI = value
         }
+
+        if let value = aDecoder.decodeObject(of: NSString.self, forKey: "colorName") as? String {
+            colorName = value
+        }
+
+        if let value = aDecoder.decodeObject(of: NSString.self, forKey: "iconName") as? String {
+            iconName = value
+        }
+
+        if let value = aDecoder.decodeObject(of: NSString.self, forKey: "displayModeName") as? String {
+            displayModeName = value
+        }
     }
 
     public func encode(with aCoder: NSCoder) {
@@ -107,6 +139,18 @@ public class ProjectSettings: NSObject, NSSecureCoding {
 
         if let notesAPI = self.notesAPI {
             aCoder.encode(notesAPI, forKey: "notesAPI")
+        }
+
+        if let colorName = colorName {
+            aCoder.encode(colorName, forKey: "colorName")
+        }
+
+        if let iconName = iconName {
+            aCoder.encode(iconName, forKey: "iconName")
+        }
+
+        if let displayModeName = displayModeName {
+            aCoder.encode(displayModeName, forKey: "displayModeName")
         }
     }
 
