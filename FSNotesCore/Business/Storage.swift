@@ -591,6 +591,16 @@ class Storage {
         return UTTypeConformsTo(type, kUTTypeText)
     }
     
+    private struct NoteIdentity: Hashable {
+        var name: String
+        var projectURL: URL
+
+        init(note: Note) {
+            name = note.name
+            projectURL = note.project.url
+        }
+    }
+
     func add(_ note: Note) {
         noteListLock.lock()
         defer { noteListLock.unlock() }
@@ -599,6 +609,27 @@ class Storage {
            _noteList.append(note)
         } else {
             print("Note already exists: \(note.name) (\(note.url))")
+        }
+    }
+
+    func add(_ notes: [Note]) {
+        guard !notes.isEmpty else { return }
+
+        noteListLock.lock()
+        defer { noteListLock.unlock() }
+
+        var identities = Set<NoteIdentity>()
+        identities.reserveCapacity(_noteList.count + notes.count)
+        for existingNote in _noteList {
+            identities.insert(NoteIdentity(note: existingNote))
+        }
+
+        for note in notes {
+            if identities.insert(NoteIdentity(note: note)).inserted {
+                _noteList.append(note)
+            } else {
+                print("Note already exists: \(note.name) (\(note.url))")
+            }
         }
     }
 

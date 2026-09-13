@@ -76,6 +76,10 @@ final class HomeLibraryModel {
     /// Notes per folder URL, computed once per reload.
     private var noteCounts = [URL: Int]()
     private var availableProjects = [Project]()
+    /// Folder relationships and aggregate counts, computed once per reload.
+    private var childrenByParent = [ObjectIdentifier: [Project]]()
+    private var rootProjects = [Project]()
+    private var subtreeNoteCounts = [ObjectIdentifier: Int]()
 
     @ObservationIgnored nonisolated(unsafe) private var observer: NSObjectProtocol?
 
@@ -122,7 +126,8 @@ final class HomeLibraryModel {
         trashCount = trashed
 
         availableProjects = storage.getAvailableProjects()
-        folders = children(of: nil).map { node(for: $0, depth: 0) }
+        rebuildFolderIndex()
+        folders = rootProjects.map { node(for: $0, depth: 0) }
         showsTags = UserDefaultsManagement.inlineTags
         tags = showsTags ? makeTags(from: storage.noteList) : []
         starred = makeStarred(from: storage)
@@ -133,29 +138,17 @@ final class HomeLibraryModel {
 
     /// Visible child folders of a folder (or the top-level folders when nil).
     func children(of parent: Project?) -> [Project] {
-        let list: [Project]
-        if let parent {
-            list = availableProjects.filter { $0.parent === parent }
-        } else {
-            list = availableProjects.filter { project in
-                guard let up = project.parent else { return true }
-                return up.isDefault || !availableProjects.contains(where: { $0 === up })
-            }
-        }
-        return list.sorted { $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending }
+        guard let parent else { return rootProjects }
+        return childrenByParent[ObjectIdentifier(parent)] ?? []
     }
 
     func hasChildren(_ project: Project) -> Bool {
-        availableProjects.contains { $0.parent === project }
+        !(childrenByParent[ObjectIdentifier(project)]?.isEmpty ?? true)
     }
 
     /// Notes directly inside a folder plus everything nested below it.
     func noteCount(for project: Project) -> Int {
-        var total = noteCounts[project.url] ?? 0
-        for child in children(of: project) {
-            total += noteCount(for: child)
-        }
-        return total
+        subtreeNoteCounts[ObjectIdentifier(project)] ?? noteCounts[project.url, default: 0]
     }
 
     func node(for project: Project, depth: Int) -> FolderNode {
@@ -166,6 +159,67 @@ final class HomeLibraryModel {
             isExpanded: project.isExpanded,
             noteCount: noteCount(for: project)
         )
+    }
+
+    private func rebuildFolderIndex() {
+        childrenByParent.removeAll(keepingCapacity: true)
+        rootProjects.removeAll(keepingCapacity: true)
+        subtreeNoteCounts.removeAll(keepingCapacity: true)
+
+        let availableIDs = Set(availableProjects.map { ObjectIdentifier($0) })
+        var indexedProjects = [ObjectIdentifier: Project]()
+        for project in availableProjects {
+            let projectID = ObjectIdentifier(project)
+            indexedProjects[projectID] = project
+
+            guard let parent = project.parent else {
+                rootProjects.append(project)
+                continue
+            }
+
+            let parentID = ObjectIdentifier(parent)
+            indexedProjects[parentID] = parent
+            childrenByParent[parentID, default: []].append(project)
+
+            // Match the sidebar's root semantics: folders under the default
+            // project or a project hidden from the available list are roots.
+            if parent.isDefault || !availableIDs.contains(parentID) {
+                rootProjects.append(project)
+            }
+        }
+
+        let sortByLabel: (Project, Project) -> Bool = {
+            $0.label.localizedCaseInsensitiveCompare($1.label) == .orderedAscending
+        }
+        rootProjects.sort(by: sortByLabel)
+        for parentID in Array(childrenByParent.keys) {
+            childrenByParent[parentID]?.sort(by: sortByLabel)
+        }
+
+        // Each project has at most one parent, so this computes every visible
+        // subtree in linear time after the relationship index is built.
+        var visiting = Set<ObjectIdentifier>()
+        func countSubtree(for project: Project) -> Int {
+            let projectID = ObjectIdentifier(project)
+            if let count = subtreeNoteCounts[projectID] {
+                return count
+            }
+            // Corrupt parent cycles should not make a reload recurse forever.
+            guard visiting.insert(projectID).inserted else { return 0 }
+
+            var total = noteCounts[project.url, default: 0]
+            for child in childrenByParent[projectID] ?? [] {
+                total += countSubtree(for: child)
+            }
+
+            visiting.remove(projectID)
+            subtreeNoteCounts[projectID] = total
+            return total
+        }
+
+        for project in indexedProjects.values {
+            _ = countSubtree(for: project)
+        }
     }
 
     // MARK: - Expansion

@@ -312,9 +312,7 @@ public class Project: NSObject {
         
         storage.loadPins(notes: notes)
 
-        for note in notes {
-            storage.add(note)
-        }
+        storage.add(notes)
 
         loadNotesPreview()
         _ = loadWebAPI()

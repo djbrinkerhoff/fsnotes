@@ -44,18 +44,51 @@ final class OverviewModel: ObservableObject {
 
     // Home
     @Published var pinnedNotes: [OverviewNoteItem] = []
-    @Published var recentNotes: [OverviewNoteItem] = []
+    @Published var recentNotes: [OverviewNoteItem] = [] {
+        didSet { recentDateGroups = groupedByDate(recentNotes) }
+    }
     @Published var folders: [OverviewFolderItem] = []
 
     // Folder / generic selection
     @Published var folderTitle: String = ""
-    @Published var folderNotes: [OverviewNoteItem] = []
+    @Published var folderNotes: [OverviewNoteItem] = [] {
+        didSet { folderDateGroups = groupedByDate(folderNotes) }
+    }
     @Published var displayMode: NoteListDisplayMode = .list
     @Published var showsFolderPath: Bool = false
+
+    @Published fileprivate var recentDateGroups = [OverviewDateGroup]()
+    @Published fileprivate var folderDateGroups = [OverviewDateGroup]()
+
+    private var dateGroupingObservers = [NSObjectProtocol]()
+
+    init() {
+        for notification in [Notification.Name.NSCalendarDayChanged, Notification.Name.NSSystemTimeZoneDidChange] {
+            let observer = NotificationCenter.default.addObserver(
+                forName: notification,
+                object: nil,
+                queue: .main
+            ) { [weak self] _ in
+                self?.refreshDateGroups()
+            }
+            dateGroupingObservers.append(observer)
+        }
+    }
+
+    deinit {
+        for observer in dateGroupingObservers {
+            NotificationCenter.default.removeObserver(observer)
+        }
+    }
 
     var onSelectNote: ((Note) -> Void)?
     var onSelectProject: ((Project) -> Void)?
     var onDisplayModeChange: ((NoteListDisplayMode) -> Void)?
+
+    private func refreshDateGroups() {
+        recentDateGroups = groupedByDate(recentNotes)
+        folderDateGroups = groupedByDate(folderNotes)
+    }
 }
 
 @available(macOS 12, *)
@@ -98,8 +131,10 @@ struct OverviewView: View {
                     VStack(alignment: .leading, spacing: 0) {
                         NoteTableColumnHeader()
 
-                        ForEach(groupedByDate(model.recentNotes)) { group in
-                            NoteTableGroupView(group: group, showsFolderPath: true) { model.onSelectNote?($0) }
+                        LazyVStack(alignment: .leading, spacing: 0) {
+                            ForEach(model.recentDateGroups) { group in
+                                NoteTableGroupView(group: group, showsFolderPath: true) { model.onSelectNote?($0) }
+                            }
                         }
                     }
                 }
@@ -148,8 +183,10 @@ struct OverviewView: View {
                 VStack(alignment: .leading, spacing: 0) {
                     NoteTableColumnHeader()
 
-                    ForEach(groupedByDate(model.folderNotes)) { group in
-                        NoteTableGroupView(group: group, showsFolderPath: model.showsFolderPath) { model.onSelectNote?($0) }
+                    LazyVStack(alignment: .leading, spacing: 0) {
+                        ForEach(model.folderDateGroups) { group in
+                            NoteTableGroupView(group: group, showsFolderPath: model.showsFolderPath) { model.onSelectNote?($0) }
+                        }
                     }
                 }
             }
@@ -301,22 +338,39 @@ private enum OverviewDateBucket: Hashable, Comparable {
     }
 
     static func bucket(for date: Date, now: Date = Date(), calendar: Calendar = .current) -> OverviewDateBucket {
-        if calendar.isDateInToday(date) { return .today }
-        if calendar.isDateInYesterday(date) { return .yesterday }
+        OverviewDateBoundaries(now: now, calendar: calendar).bucket(for: date)
+    }
+}
 
-        let startOfToday = calendar.startOfDay(for: now)
-        let startOfDate = calendar.startOfDay(for: date)
-        let days = calendar.dateComponents([.day], from: startOfDate, to: startOfToday).day ?? 0
+@available(macOS 12, *)
+private struct OverviewDateBoundaries {
+    let calendar: Calendar
+    let startOfToday: Date
+    let startOfTomorrow: Date
+    let startOfYesterday: Date
+    let startOfLast7Days: Date
+    let startOfLast30Days: Date
 
-        if days <= 7 { return .last7Days }
-        if days <= 30 { return .last30Days }
+    init(now: Date, calendar: Calendar) {
+        self.calendar = calendar
+        startOfToday = calendar.startOfDay(for: now)
+        startOfTomorrow = calendar.date(byAdding: .day, value: 1, to: startOfToday) ?? now
+        startOfYesterday = calendar.date(byAdding: .day, value: -1, to: startOfToday) ?? now
+        startOfLast7Days = calendar.date(byAdding: .day, value: -7, to: startOfToday) ?? now
+        startOfLast30Days = calendar.date(byAdding: .day, value: -30, to: startOfToday) ?? now
+    }
 
+    func bucket(for date: Date) -> OverviewDateBucket {
+        if date >= startOfToday && date < startOfTomorrow { return .today }
+        if date >= startOfYesterday && date < startOfToday { return .yesterday }
+        if date >= startOfLast7Days { return .last7Days }
+        if date >= startOfLast30Days { return .last30Days }
         return .year(calendar.component(.year, from: date))
     }
 }
 
 @available(macOS 12, *)
-private struct OverviewDateGroup: Identifiable {
+fileprivate struct OverviewDateGroup: Identifiable {
     let id: String
     let label: String
     let items: [OverviewNoteItem]
@@ -324,10 +378,20 @@ private struct OverviewDateGroup: Identifiable {
 
 @available(macOS 12, *)
 private func groupedByDate(_ items: [OverviewNoteItem]) -> [OverviewDateGroup] {
+    groupedByDate(items, now: Date(), calendar: .current)
+}
+
+@available(macOS 12, *)
+private func groupedByDate(
+    _ items: [OverviewNoteItem],
+    now: Date,
+    calendar: Calendar
+) -> [OverviewDateGroup] {
+    let boundaries = OverviewDateBoundaries(now: now, calendar: calendar)
     var buckets: [OverviewDateBucket: [OverviewNoteItem]] = [:]
 
     for item in items {
-        let bucket = OverviewDateBucket.bucket(for: item.note.modifiedLocalAt)
+        let bucket = boundaries.bucket(for: item.note.modifiedLocalAt)
         buckets[bucket, default: []].append(item)
     }
 
@@ -385,7 +449,7 @@ private struct NoteTableGroupView: View {
     let action: (Note) -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
+        LazyVStack(alignment: .leading, spacing: 0) {
             Text(group.label)
                 .font(.system(size: 12))
                 .foregroundColor(SwiftUI.Color(NSColor.secondaryLabelColor))

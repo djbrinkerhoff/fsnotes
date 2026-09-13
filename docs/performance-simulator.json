@@ -1,0 +1,274 @@
+{
+  "device": "iPhone 17 Pro",
+  "runtime": "iOS 26.3",
+  "sdk": "iOS 26.2",
+  "configuration": "Debug",
+  "date": "2026-09-13",
+  "notes": "Isolated simulator; 5 notes in 2 leaf folders, 5000 notes in 100 leaf folders under 10 parents. Each launch reads from disk; OS filesystem cache warm. Timers are app-reported phases, not end-to-end launch or frame timings.",
+  "samples": [
+    {
+      "version": "baseline",
+      "noteCount": 5,
+      "run": 2,
+      "loadedNoteCount": 5,
+      "phases": [
+        {
+          "phase": 1,
+          "name": "Loaded non system projects and relations",
+          "milliseconds": 6.66499137878418
+        },
+        {
+          "phase": 2,
+          "name": "Notes loading finished",
+          "milliseconds": 3.537893295288086
+        },
+        {
+          "phase": 3,
+          "name": "Notes diff loading finished",
+          "milliseconds": 3.316044807434082
+        },
+        {
+          "phase": 4,
+          "name": "Full notes loading",
+          "milliseconds": 1.1959075927734375
+        },
+        {
+          "phase": 5,
+          "name": "Spotlight indexation finished",
+          "milliseconds": 22.56608009338379
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "noteCount": 5,
+      "run": 3,
+      "loadedNoteCount": 5,
+      "phases": [
+        {
+          "phase": 1,
+          "name": "Loaded non system projects and relations",
+          "milliseconds": 5.702972412109375
+        },
+        {
+          "phase": 2,
+          "name": "Notes loading finished",
+          "milliseconds": 3.5049915313720703
+        },
+        {
+          "phase": 3,
+          "name": "Notes diff loading finished",
+          "milliseconds": 3.351926803588867
+        },
+        {
+          "phase": 4,
+          "name": "Full notes loading",
+          "milliseconds": 1.1789798736572266
+        },
+        {
+          "phase": 5,
+          "name": "Spotlight indexation finished",
+          "milliseconds": 22.96006679534912
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "noteCount": 5000,
+      "run": 1,
+      "loadedNoteCount": 5000,
+      "phases": [
+        {
+          "phase": 1,
+          "name": "Loaded non system projects and relations",
+          "milliseconds": 345.6130027770996
+        },
+        {
+          "phase": 2,
+          "name": "Notes loading finished",
+          "milliseconds": 5587.618947029114
+        },
+        {
+          "phase": 3,
+          "name": "Notes diff loading finished",
+          "milliseconds": 2199.849009513855
+        },
+        {
+          "phase": 4,
+          "name": "Full notes loading",
+          "milliseconds": 1086.8630409240723
+        },
+        {
+          "phase": 5,
+          "name": "Spotlight indexation finished",
+          "milliseconds": 138.68403434753418
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "noteCount": 5000,
+      "run": 2,
+      "loadedNoteCount": 5000,
+      "phases": [
+        {
+          "phase": 1,
+          "name": "Loaded non system projects and relations",
+          "milliseconds": 338.52195739746094
+        },
+        {
+          "phase": 2,
+          "name": "Notes loading finished",
+          "milliseconds": 5600.56209564209
+        },
+        {
+          "phase": 3,
+          "name": "Notes diff loading finished",
+          "milliseconds": 2008.5649490356445
+        },
+        {
+          "phase": 4,
+          "name": "Full notes loading",
+          "milliseconds": 1081.5739631652832
+        },
+        {
+          "phase": 5,
+          "name": "Spotlight indexation finished",
+          "milliseconds": 146.03197574615479
+        }
+      ]
+    },
+    {
+      "version": "baseline",
+      "noteCount": 5000,
+      "run": 3,
+      "loadedNoteCount": 5000,
+      "phases": [
+        {
+          "phase": 1,
+          "name": "Loaded non system projects and relations",
+          "milliseconds": 352.84602642059326
+        },
+        {
+          "phase": 2,
+          "name": "Notes loading finished",
+          "milliseconds": 5554.850935935974
+        },
+        {
+          "phase": 3,
+          "name": "Notes diff loading finished",
+          "milliseconds": 2069.5160627365112
+        },
+        {
+          "phase": 4,
+          "name": "Full notes loading",
+          "milliseconds": 1086.706042289734
+        },
+        {
+          "phase": 5,
+          "name": "Spotlight indexation finished",
+          "milliseconds": 166.7720079421997
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "noteCount": 5000,
+      "run": 1,
+      "loadedNoteCount": 5000,
+      "phases": [
+        {
+          "phase": 1,
+          "name": "Loaded non system projects and relations",
+          "milliseconds": 321.4590549468994
+        },
+        {
+          "phase": 2,
+          "name": "Notes loading finished",
+          "milliseconds": 773.906946182251
+        },
+        {
+          "phase": 3,
+          "name": "Notes diff loading finished",
+          "milliseconds": 2210.0000381469727
+        },
+        {
+          "phase": 4,
+          "name": "Full notes loading",
+          "milliseconds": 1071.966052055359
+        },
+        {
+          "phase": 5,
+          "name": "Spotlight indexation finished",
+          "milliseconds": 141.82698726654053
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "noteCount": 5000,
+      "run": 2,
+      "loadedNoteCount": 5000,
+      "phases": [
+        {
+          "phase": 1,
+          "name": "Loaded non system projects and relations",
+          "milliseconds": 332.79502391815186
+        },
+        {
+          "phase": 2,
+          "name": "Notes loading finished",
+          "milliseconds": 773.169994354248
+        },
+        {
+          "phase": 3,
+          "name": "Notes diff loading finished",
+          "milliseconds": 2025.4340171813965
+        },
+        {
+          "phase": 4,
+          "name": "Full notes loading",
+          "milliseconds": 1068.8410997390747
+        },
+        {
+          "phase": 5,
+          "name": "Spotlight indexation finished",
+          "milliseconds": 145.30205726623535
+        }
+      ]
+    },
+    {
+      "version": "after",
+      "noteCount": 5000,
+      "run": 3,
+      "loadedNoteCount": 5000,
+      "phases": [
+        {
+          "phase": 1,
+          "name": "Loaded non system projects and relations",
+          "milliseconds": 327.74102687835693
+        },
+        {
+          "phase": 2,
+          "name": "Notes loading finished",
+          "milliseconds": 733.4680557250977
+        },
+        {
+          "phase": 3,
+          "name": "Notes diff loading finished",
+          "milliseconds": 2008.8698863983154
+        },
+        {
+          "phase": 4,
+          "name": "Full notes loading",
+          "milliseconds": 1076.2310028076172
+        },
+        {
+          "phase": 5,
+          "name": "Spotlight indexation finished",
+          "milliseconds": 143.52893829345703
+        }
+      ]
+    }
+  ]
+}

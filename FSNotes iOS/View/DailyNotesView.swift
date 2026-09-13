@@ -22,6 +22,9 @@ final class DailyNotesModel {
     var previousLimit = 14
 
     private(set) var notesByDay = [Date: Note]()
+    private var dailyDateFormatter: DateFormatter?
+    private var dailyDateFormatterTimeZone: TimeZone?
+    private var orderedDateKeys = [Date]()
 
     nonisolated(unsafe) private var observer: NSObjectProtocol?
 
@@ -39,40 +42,74 @@ final class DailyNotesModel {
     }
 
     func reload() {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
+        let calendar = Calendar.current
+        let formatter = dailyDateFormatter(for: calendar)
 
         var map = [Date: Note]()
         for note in Storage.shared().noteList where !note.isTrash() {
-            if let date = formatter.date(from: note.fileName) {
-                map[Calendar.current.startOfDay(for: date)] = note
-            }
+            guard Self.hasDailyDateShape(note.fileName),
+                  let date = formatter.date(from: note.fileName),
+                  formatter.string(from: date) == note.fileName else { continue }
+            map[calendar.startOfDay(for: date)] = note
         }
         notesByDay = map
+        orderedDateKeys = map.keys.sorted(by: >)
     }
 
     var today: Date { Calendar.current.startOfDay(for: Date()) }
 
     /// Today and the next `upcomingDays` days.
     var upcoming: [Day] {
-        (0..<(upcomingDays + 1)).compactMap { offset in
-            guard let date = Calendar.current.date(byAdding: .day, value: offset, to: today) else { return nil }
+        let calendar = Calendar.current
+        let currentDay = calendar.startOfDay(for: Date())
+        return (0..<(upcomingDays + 1)).compactMap { offset in
+            guard let date = calendar.date(byAdding: .day, value: offset, to: currentDay) else { return nil }
             return Day(date: date, note: notesByDay[date])
         }
     }
 
     /// Earlier days that have a note, newest first.
     var previous: [Day] {
-        notesByDay.keys
-            .filter { $0 < today }
-            .sorted(by: >)
+        let currentDay = Calendar.current.startOfDay(for: Date())
+        return orderedDateKeys
+            .drop(while: { $0 >= currentDay })
             .prefix(previousLimit)
             .map { Day(date: $0, note: notesByDay[$0]) }
     }
 
     var hasPrevious: Bool {
-        notesByDay.keys.contains { $0 < today }
+        let currentDay = Calendar.current.startOfDay(for: Date())
+        return orderedDateKeys.last.map { $0 < currentDay } ?? false
+    }
+
+    private func dailyDateFormatter(for calendar: Calendar) -> DateFormatter {
+        if let dailyDateFormatter, dailyDateFormatterTimeZone == calendar.timeZone {
+            return dailyDateFormatter
+        }
+
+        var parsingCalendar = Calendar(identifier: .gregorian)
+        parsingCalendar.timeZone = calendar.timeZone
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = parsingCalendar
+        formatter.timeZone = parsingCalendar.timeZone
+        formatter.dateFormat = "yyyy-MM-dd"
+        formatter.isLenient = false
+        dailyDateFormatter = formatter
+        dailyDateFormatterTimeZone = calendar.timeZone
+        return formatter
+    }
+
+    private static func hasDailyDateShape(_ fileName: String) -> Bool {
+        guard fileName.utf8.count == 10 else { return false }
+        for (index, byte) in fileName.utf8.enumerated() {
+            if index == 4 || index == 7 {
+                guard byte == 45 else { return false }
+            } else {
+                guard byte >= 48, byte <= 57 else { return false }
+            }
+        }
+        return true
     }
 }
 

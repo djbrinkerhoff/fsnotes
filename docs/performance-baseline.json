@@ -1,0 +1,109 @@
+{
+  "generatedAt": "2026-09-13",
+  "toolchain": "Apple Swift 6.2.4, macOS arm64",
+  "warmups": 3,
+  "samples": 15,
+  "clock": "ContinuousClock",
+  "results": [
+    {
+      "noteCount": 5,
+      "folderCount": 2,
+      "metrics": {
+        "homeReload": { "medianMilliseconds": 0.023250, "p95Milliseconds": 0.024667, "checksum": 13 },
+        "folderNodeLookups": { "medianMilliseconds": 0.002166, "p95Milliseconds": 0.002292, "checksum": 16 },
+        "dailyReload": { "medianMilliseconds": 0.100334, "p95Milliseconds": 0.104292, "checksum": 1 },
+        "dailyPreviousGetter": { "medianMilliseconds": 0.002458, "p95Milliseconds": 0.002625, "checksum": 0 },
+        "groupedByDate": { "medianMilliseconds": 0.014375, "p95Milliseconds": 0.017583, "checksum": 5 }
+      },
+      "correctness": {
+        "expectedNotes": 5,
+        "expectedNonTrashNotes": 5,
+        "expectedTrashNotes": 0,
+        "expectedProjects": 2,
+        "expectedDailyDateKeys": 1,
+        "homeFolders": 1,
+        "homeStarred": 1,
+        "homeTrashCount": 0,
+        "dailyDateKeys": 1,
+        "dailyPreviousCount": 0,
+        "folderLookupProjects": 2,
+        "groupedItems": 5
+      }
+    },
+    {
+      "noteCount": 5,
+      "folderCount": 250,
+      "metrics": {
+        "homeReload": { "medianMilliseconds": 0.529375, "p95Milliseconds": 0.591250, "checksum": 13 },
+        "folderNodeLookups": { "medianMilliseconds": 108.629209, "p95Milliseconds": 109.821208, "checksum": 528 },
+        "dailyReload": { "medianMilliseconds": 0.099167, "p95Milliseconds": 0.100958, "checksum": 1 },
+        "dailyPreviousGetter": { "medianMilliseconds": 0.002417, "p95Milliseconds": 0.002500, "checksum": 0 },
+        "groupedByDate": { "medianMilliseconds": 0.014584, "p95Milliseconds": 0.014792, "checksum": 5 }
+      },
+      "correctness": {
+        "expectedNotes": 5,
+        "expectedNonTrashNotes": 5,
+        "expectedTrashNotes": 0,
+        "expectedProjects": 250,
+        "expectedDailyDateKeys": 1,
+        "homeFolders": 1,
+        "homeStarred": 1,
+        "homeTrashCount": 0,
+        "dailyDateKeys": 1,
+        "dailyPreviousCount": 0,
+        "folderLookupProjects": 250,
+        "groupedItems": 5
+      }
+    },
+    {
+      "noteCount": 5000,
+      "folderCount": 2,
+      "metrics": {
+        "homeReload": { "medianMilliseconds": 1.395875, "p95Milliseconds": 1.667833, "checksum": 392 },
+        "folderNodeLookups": { "medianMilliseconds": 0.001833, "p95Milliseconds": 0.002000, "checksum": 14602 },
+        "dailyReload": { "medianMilliseconds": 69.561541, "p95Milliseconds": 71.273292, "checksum": 500 },
+        "dailyPreviousGetter": { "medianMilliseconds": 1.252584, "p95Milliseconds": 1.256917, "checksum": 14 },
+        "groupedByDate": { "medianMilliseconds": 107.532083, "p95Milliseconds": 109.518791, "checksum": 4900 }
+      },
+      "correctness": {
+        "expectedNotes": 5000,
+        "expectedNonTrashNotes": 4900,
+        "expectedTrashNotes": 100,
+        "expectedProjects": 2,
+        "expectedDailyDateKeys": 500,
+        "homeFolders": 1,
+        "homeStarred": 250,
+        "homeTrashCount": 100,
+        "dailyDateKeys": 500,
+        "dailyPreviousCount": 14,
+        "folderLookupProjects": 2,
+        "groupedItems": 4900
+      }
+    },
+    {
+      "noteCount": 5000,
+      "folderCount": 250,
+      "metrics": {
+        "homeReload": { "medianMilliseconds": 2.151083, "p95Milliseconds": 3.173792, "checksum": 392 },
+        "folderNodeLookups": { "medianMilliseconds": 110.471500, "p95Milliseconds": 113.270542, "checksum": 1225498 },
+        "dailyReload": { "medianMilliseconds": 69.521167, "p95Milliseconds": 331.709334, "checksum": 500 },
+        "dailyPreviousGetter": { "medianMilliseconds": 1.241292, "p95Milliseconds": 1.255000, "checksum": 14 },
+        "groupedByDate": { "medianMilliseconds": 105.758917, "p95Milliseconds": 115.688791, "checksum": 4900 }
+      },
+      "correctness": {
+        "expectedNotes": 5000,
+        "expectedNonTrashNotes": 4900,
+        "expectedTrashNotes": 100,
+        "expectedProjects": 250,
+        "expectedDailyDateKeys": 500,
+        "homeFolders": 1,
+        "homeStarred": 250,
+        "homeTrashCount": 100,
+        "dailyDateKeys": 500,
+        "dailyPreviousCount": 14,
+        "folderLookupProjects": 250,
+        "groupedItems": 4900
+      }
+    }
+  ]
+}
