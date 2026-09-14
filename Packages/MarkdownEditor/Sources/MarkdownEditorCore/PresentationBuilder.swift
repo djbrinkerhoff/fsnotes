@@ -29,16 +29,36 @@ public struct PresentationBuilder: PresentationBuilding {
         var lineInfos = [LineInfo?](repeating: nil, count: sourceLines.count)
         var delimiterSpans: [DelimiterSpan] = []
         var contentSpans: [ContentSpan] = []
+        delimiterSpans.reserveCapacity(sourceLines.count)
+        contentSpans.reserveCapacity(sourceLines.count)
         var markerByLine: [Int: (ListMarker, NSRange?)] = [:]
         var leadingHiddenEnd: [Int: Int] = [:]
 
+        // `lineIndex` is queried, throughout the depth-first `visit` walk below, with offsets
+        // that are *almost always* non-decreasing (a container's own range starts at or before
+        // its children's, siblings are visited in source order), with one notable exception: a
+        // multi-line blockquote's marker ranges are all handled before its child block, whose
+        // range can start earlier than the blockquote's later markers (e.g. `> a\n> b`, where the
+        // one child paragraph spans both lines but starts right after the first `>`). So this
+        // keeps a forward-scanning cursor for the common case — turning what used to be a binary
+        // search per query into an amortized O(1) advance — but detects a backward query (cursor
+        // now points past `offset`) and falls back to a full binary search, exactly reproducing
+        // the original algorithm's result, before resyncing the cursor.
+        var lineIndexCursor = 0
         func lineIndex(at offset: Int) -> Int {
-            var lo = 0, hi = sourceLines.count - 1, result = 0
-            while lo <= hi {
-                let mid = (lo + hi) / 2
-                if sourceLines[mid].range.location <= offset { result = mid; lo = mid + 1 } else { hi = mid - 1 }
+            if sourceLines[lineIndexCursor].range.location > offset {
+                var lo = 0, hi = sourceLines.count - 1, result = 0
+                while lo <= hi {
+                    let mid = (lo + hi) / 2
+                    if sourceLines[mid].range.location <= offset { result = mid; lo = mid + 1 } else { hi = mid - 1 }
+                }
+                lineIndexCursor = result
+                return result
             }
-            return result
+            while lineIndexCursor + 1 < sourceLines.count, sourceLines[lineIndexCursor + 1].range.location <= offset {
+                lineIndexCursor += 1
+            }
+            return lineIndexCursor
         }
 
         func lineSpan(of range: NSRange) -> ClosedRange<Int> {
@@ -47,24 +67,14 @@ public struct PresentationBuilder: PresentationBuilding {
             return startLi...max(startLi, endLi)
         }
 
-        func depths(_ parents: [MarkdownBlock]) -> (quote: Int, list: Int) {
-            var quote = 0
-            var list = 0
-            // `parents` is ordered outermost-first, so keep overwriting `list` as we go:
-            // the last (innermost) enclosing listItem wins.
-            for parent in parents {
-                if case .blockquote = parent.kind { quote += 1 }
-                if case .listItem(_, _, _, let depth) = parent.kind {
-                    list = depth + 1
-                }
-            }
-            return (quote, list)
-        }
-
-        func assignLines(_ range: NSRange, kind: BlockPresentationKind, parents: [MarkdownBlock]) {
-            let (quote, list) = depths(parents)
+        // Quote/list depth for the block currently being visited is threaded down as two plain
+        // Ints during the walk (see `visit`) instead of being recomputed from an ancestor-block
+        // array at every leaf: the array (`parents + [block]`) previously had to be reallocated
+        // and its elements retained (each `MarkdownBlock` carries nested arrays/strings) once per
+        // child, at every level of the tree, purely to re-derive these two numbers on demand.
+        func assignLines(_ range: NSRange, kind: BlockPresentationKind, quoteDepth: Int, listDepth: Int) {
             for li in lineSpan(of: range) {
-                lineInfos[li] = LineInfo(blockKind: kind, quoteDepth: quote, listDepth: list)
+                lineInfos[li] = LineInfo(blockKind: kind, quoteDepth: quoteDepth, listDepth: listDepth)
             }
         }
 
@@ -175,40 +185,39 @@ public struct PresentationBuilder: PresentationBuilding {
         }
 
         for block in tree.blocks {
-            visit(block, [])
+            visit(block, quoteDepth: 0, listDepth: 0)
         }
-        func visit(_ block: MarkdownBlock, _ parents: [MarkdownBlock]) {
+        func visit(_ block: MarkdownBlock, quoteDepth: Int, listDepth: Int) {
             switch block.kind {
             case .paragraph:
-                assignLines(block.range, kind: .paragraph, parents: parents)
+                assignLines(block.range, kind: .paragraph, quoteDepth: quoteDepth, listDepth: listDepth)
                 walkInlines(block.inlines)
 
             case .heading(let level, let markerRange, let closingRange):
-                assignLines(block.range, kind: .heading(level: level), parents: parents)
+                assignLines(block.range, kind: .heading(level: level), quoteDepth: quoteDepth, listDepth: listDepth)
                 if markerRange.length > 0 { delimiterSpans.append(DelimiterSpan(range: markerRange, attachment: .leading)) }
                 if let closing = closingRange, closing.length > 0 { delimiterSpans.append(DelimiterSpan(range: closing, attachment: .trailing)) }
                 walkInlines(block.inlines)
 
             case .setextHeading(let level, let underlineRange):
-                let (quote, list) = depths(parents)
                 let textLi = lineIndex(at: block.range.location)
                 let underlineLi = lineIndex(at: underlineRange.location)
-                lineInfos[textLi] = LineInfo(blockKind: .heading(level: level), quoteDepth: quote, listDepth: list)
-                lineInfos[underlineLi] = LineInfo(blockKind: .paragraph, quoteDepth: quote, listDepth: list)
+                lineInfos[textLi] = LineInfo(blockKind: .heading(level: level), quoteDepth: quoteDepth, listDepth: listDepth)
+                lineInfos[underlineLi] = LineInfo(blockKind: .paragraph, quoteDepth: quoteDepth, listDepth: listDepth)
                 if underlineRange.length > 0 { contentSpans.append(ContentSpan(range: underlineRange, style: .syntax, destination: nil)) }
                 walkInlines(block.inlines)
 
             case .thematicBreak:
-                assignLines(block.range, kind: .thematicBreak, parents: parents)
+                assignLines(block.range, kind: .thematicBreak, quoteDepth: quoteDepth, listDepth: listDepth)
                 fullLineSyntaxSpans(block.range)
 
             case .fencedCode(_, let openingFence, let closingFence, _):
-                assignLines(block.range, kind: .codeBlock(isFence: true), parents: parents)
+                assignLines(block.range, kind: .codeBlock(isFence: true), quoteDepth: quoteDepth, listDepth: listDepth)
                 if openingFence.length > 0 { contentSpans.append(ContentSpan(range: openingFence, style: .syntax, destination: nil)) }
                 if let closing = closingFence, closing.length > 0 { contentSpans.append(ContentSpan(range: closing, style: .syntax, destination: nil)) }
 
             case .indentedCode:
-                assignLines(block.range, kind: .codeBlock(isFence: false), parents: parents)
+                assignLines(block.range, kind: .codeBlock(isFence: false), quoteDepth: quoteDepth, listDepth: listDepth)
 
             case .blockquote(let markerRanges):
                 for marker in markerRanges where marker.length > 0 {
@@ -230,25 +239,39 @@ public struct PresentationBuilder: PresentationBuilding {
                 markerByLine[li] = (marker, task?.markerRange)
 
             case .htmlBlock:
-                assignLines(block.range, kind: .html, parents: parents)
+                assignLines(block.range, kind: .html, quoteDepth: quoteDepth, listDepth: listDepth)
                 fullLineSyntaxSpans(block.range)
 
             case .table:
-                assignLines(block.range, kind: .table, parents: parents)
+                assignLines(block.range, kind: .table, quoteDepth: quoteDepth, listDepth: listDepth)
                 fullLineSyntaxSpans(block.range)
 
             case .frontMatter:
-                assignLines(block.range, kind: .frontMatter, parents: parents)
+                assignLines(block.range, kind: .frontMatter, quoteDepth: quoteDepth, listDepth: listDepth)
                 fullLineSyntaxSpans(block.range)
 
             case .linkReferenceDefinition:
-                assignLines(block.range, kind: .paragraph, parents: parents)
+                assignLines(block.range, kind: .paragraph, quoteDepth: quoteDepth, listDepth: listDepth)
                 fullLineSyntaxSpans(block.range)
 
             case .blank:
-                assignLines(block.range, kind: .blank, parents: parents)
+                assignLines(block.range, kind: .blank, quoteDepth: quoteDepth, listDepth: listDepth)
             }
-            for child in block.children { visit(child, parents + [block]) }
+            guard !block.children.isEmpty else { return }
+            // Matches the previous `depths(parents)` semantics exactly: quote depth accumulates
+            // across nested blockquotes, while list depth is *overwritten* by the innermost
+            // listItem's own recorded depth (already nesting-aware from the parser), not summed.
+            var childQuoteDepth = quoteDepth
+            var childListDepth = listDepth
+            switch block.kind {
+            case .blockquote:
+                childQuoteDepth += 1
+            case .listItem(_, _, _, let depth):
+                childListDepth = depth + 1
+            default:
+                break
+            }
+            for child in block.children { visit(child, quoteDepth: childQuoteDepth, listDepth: childListDepth) }
         }
 
         for (li, (marker, taskRange)) in markerByLine {
@@ -258,12 +281,14 @@ public struct PresentationBuilder: PresentationBuilding {
             lineInfos[li] = info
         }
 
+
         // MARK: CRLF terminators — hide the `\r` only when immediately followed by `\n`.
 
         var hiddenRuns: [SourceDisplayMap.Run] = delimiterSpans.map { SourceDisplayMap.Run(sourceRange: $0.range, attachment: $0.attachment) }
         for line in sourceLines where line.terminator.length == 2 {
             hiddenRuns.append(SourceDisplayMap.Run(sourceRange: NSRange(location: line.terminator.location, length: 1), attachment: .trailing))
         }
+
 
         // MARK: Build the map.
 
@@ -274,6 +299,7 @@ public struct PresentationBuilder: PresentationBuilding {
         case .source:
             map = SourceDisplayMap.identity(sourceLength: sourceLength)
         }
+
 
         // MARK: Build display text.
 
@@ -296,6 +322,7 @@ public struct PresentationBuilder: PresentationBuilding {
                 String(utf16CodeUnits: buf.baseAddress!, count: buf.count)
             }
         }
+
 
         // MARK: Style spans -> display coordinates.
 
@@ -322,8 +349,33 @@ public struct PresentationBuilder: PresentationBuilding {
         lines.reserveCapacity(sourceLines.count)
         var displayLineRanges: [NSRange] = []
         displayLineRanges.reserveCapacity(sourceLines.count)
+        // `sourceLines` is strictly ordered and non-overlapping, so the (start, end) offsets
+        // queried below are non-decreasing across the whole loop. That lets a forward-scanning
+        // cursor over `map.runs` (sorted, public) stand in for `map.displayRange(forSource:)`'s
+        // internal binary search — amortized O(1) instead of O(log runs.count) per line — while
+        // falling back to the real (always-correct) implementation if that assumption is ever
+        // violated, so this can never produce a different result than calling `map` directly.
+        var lineRunCursor = 0
+        var lineDeltaBeforeCursor = 0
+        var lastLineQuery = -1
+        func fastDisplayOffset(forSource source: Int) -> Int {
+            let s = max(0, min(source, sourceLength))
+            guard s >= lastLineQuery else { return map.displayOffset(forSource: s) }
+            lastLineQuery = s
+            while lineRunCursor < map.runs.count, map.runs[lineRunCursor].sourceRange.location <= s {
+                let run = map.runs[lineRunCursor]
+                if s < NSMaxRange(run.sourceRange) {
+                    return run.sourceRange.location - lineDeltaBeforeCursor
+                }
+                lineDeltaBeforeCursor += run.sourceRange.length
+                lineRunCursor += 1
+            }
+            return s - lineDeltaBeforeCursor
+        }
         for line in sourceLines {
-            displayLineRanges.append(map.displayRange(forSource: line.range))
+            let start = fastDisplayOffset(forSource: line.range.location)
+            let end = fastDisplayOffset(forSource: NSMaxRange(line.range))
+            displayLineRanges.append(NSRange(location: start, length: max(0, end - start)))
         }
 
         var cursor = 0
@@ -331,6 +383,8 @@ public struct PresentationBuilder: PresentationBuilding {
             while cursor < displaySpans.count, NSMaxRange(displaySpans[cursor].range) <= displayRange.location {
                 cursor += 1
             }
+            // Builds directly in merged form (folding what used to be a separate `mergeAdjacent`
+            // pass over a freshly-appended `runs` array into the same loop that appends them).
             var runs: [StyleRun] = []
             var j = cursor
             while j < displaySpans.count, displaySpans[j].range.location < NSMaxRange(displayRange) {
@@ -338,14 +392,18 @@ public struct PresentationBuilder: PresentationBuilding {
                 let interLoc = max(span.range.location, displayRange.location)
                 let interEnd = min(NSMaxRange(span.range), NSMaxRange(displayRange))
                 if interEnd > interLoc {
-                    runs.append(StyleRun(displayRange: NSRange(location: interLoc, length: interEnd - interLoc), style: span.style, destination: span.destination))
+                    if let last = runs.last, NSMaxRange(last.displayRange) == interLoc, last.style == span.style, last.destination == span.destination {
+                        runs[runs.count - 1] = StyleRun(displayRange: NSRange(location: last.displayRange.location, length: interEnd - last.displayRange.location), style: last.style, destination: last.destination)
+                    } else {
+                        runs.append(StyleRun(displayRange: NSRange(location: interLoc, length: interEnd - interLoc), style: span.style, destination: span.destination))
+                    }
                 }
                 j += 1
             }
 
             let info = lineInfos[li] ?? LineInfo(blockKind: .blank, quoteDepth: 0, listDepth: 0)
             let block = BlockPresentation(kind: info.blockKind, quoteDepth: info.quoteDepth, listDepth: info.listDepth, listMarker: info.listMarker, taskMarkerSourceRange: info.taskMarkerSourceRange)
-            lines.append(PresentationLine(displayRange: displayRange, block: block, runs: mergeAdjacent(runs)))
+            lines.append(PresentationLine(displayRange: displayRange, block: block, runs: runs))
         }
 
         return Presentation(displayText: displayText, map: map, lines: lines, mode: mode)
@@ -380,17 +438,4 @@ public struct PresentationBuilder: PresentationBuilding {
         }
     }
 
-    private func mergeAdjacent(_ runs: [StyleRun]) -> [StyleRun] {
-        guard !runs.isEmpty else { return [] }
-        var result: [StyleRun] = [runs[0]]
-        for run in runs.dropFirst() {
-            let last = result[result.count - 1]
-            if NSMaxRange(last.displayRange) == run.displayRange.location, last.style == run.style, last.destination == run.destination {
-                result[result.count - 1] = StyleRun(displayRange: NSRange(location: last.displayRange.location, length: last.displayRange.length + run.displayRange.length), style: last.style, destination: last.destination)
-            } else {
-                result.append(run)
-            }
-        }
-        return result
-    }
 }

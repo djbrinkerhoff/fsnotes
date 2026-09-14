@@ -22,20 +22,27 @@ final class BlockEngine {
     }
 
     func run() -> [MarkdownBlock] {
-        let ctx = (0..<lines.count).map { CtxLine(lineIndex: $0, start: lines[$0].range.location) }
+        var ctx: [CtxLine] = []
+        ctx.reserveCapacity(lines.count)
+        for i in 0..<lines.count { ctx.append(CtxLine(lineIndex: i, start: lines[i].range.location)) }
         return parseBlockSequence(ctx, depth: 0, ancestorMarkers: [])
     }
 
     func substring(_ range: NSRange) -> String {
         guard range.length > 0 else { return "" }
-        return String(utf16CodeUnits: Array(units[range.location..<NSMaxRange(range)]), count: range.length)
+        // Build directly from a pointer into `units` instead of first copying the slice into a
+        // throwaway `Array` (the previous `Array(units[...])` allocated and populated a second
+        // buffer purely to hand its contents to `String.init`).
+        return units.withUnsafeBufferPointer { buf in
+            String(utf16CodeUnits: buf.baseAddress! + range.location, count: range.length)
+        }
     }
 
     // MARK: - Low-level line helpers
 
-    func lineRawEnd(_ line: CtxLine) -> Int { NSMaxRange(lines[line.lineIndex].range) }
+    @inline(__always) func lineRawEnd(_ line: CtxLine) -> Int { NSMaxRange(lines[line.lineIndex].range) }
 
-    func rawRange(_ line: CtxLine) -> NSRange {
+    @inline(__always) func rawRange(_ line: CtxLine) -> NSRange {
         NSRange(location: line.start, length: lineRawEnd(line) - line.start)
     }
 
@@ -90,12 +97,15 @@ final class BlockEngine {
         return p
     }
 
-    func isBlank(_ line: CtxLine) -> Bool {
+    @inline(__always) func isBlank(_ line: CtxLine) -> Bool {
         let end = lineRawEnd(line)
         return indentWidth(from: line.start, to: end).end == end
     }
 
     func filteredMarkers(_ markers: [NSRange], within range: NSRange) -> [NSRange] {
+        // Most blocks (anything not nested in a blockquote) have no ancestor markers at all;
+        // skip the filter+sort allocation dance entirely for that overwhelmingly common case.
+        guard !markers.isEmpty else { return markers }
         let lo = range.location, hi = NSMaxRange(range)
         return markers.filter { $0.location >= lo && NSMaxRange($0) <= hi }.sorted { $0.location < $1.location }
     }
@@ -377,8 +387,8 @@ final class BlockEngine {
             while p < end, CharKind.isSpaceOrTab(units[p]) { p += 1 }
             guard p >= end else { return nil }
         }
-        let label = String(utf16CodeUnits: Array(units[labelStart..<labelEnd]), count: labelEnd - labelStart)
-        let dest = String(utf16CodeUnits: Array(units[destStart..<destEnd]), count: destEnd - destStart)
+        let label = substring(NSRange(location: labelStart, length: labelEnd - labelStart))
+        let dest = substring(NSRange(location: destStart, length: destEnd - destStart))
         return (label, dest)
     }
 

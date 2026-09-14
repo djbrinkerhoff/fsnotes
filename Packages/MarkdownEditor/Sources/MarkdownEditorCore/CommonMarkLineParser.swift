@@ -26,6 +26,12 @@ public struct CommonMarkLineParser: MarkdownParser {
     static func splitLines(_ units: [UInt16]) -> [MarkdownLine] {
         var lines: [MarkdownLine] = []
         let count = units.count
+        // Heuristic capacity avoids most of the doubling reallocations for realistically-sized
+        // documents. Markdown tends to have short lines (headings, list items, blank separator
+        // lines), so this deliberately errs on the side of a smaller assumed average line length
+        // (which over-reserves slightly) rather than a larger one (which would still leave a
+        // reallocation on the table for exactly the short-lined documents this is meant to help).
+        lines.reserveCapacity(max(16, count / 12))
         var lineStart = 0
         var i = 0
         while i < count {
@@ -86,13 +92,13 @@ enum CharKind {
     static let slash: UInt16 = 0x2F
     static let backslashChar: Character = "\\"
 
-    static func isASCIIDigit(_ u: UInt16) -> Bool { u >= 0x30 && u <= 0x39 }
-    static func isASCIIAlpha(_ u: UInt16) -> Bool { (u >= 0x41 && u <= 0x5A) || (u >= 0x61 && u <= 0x7A) }
-    static func isASCIIAlnum(_ u: UInt16) -> Bool { isASCIIAlpha(u) || isASCIIDigit(u) }
-    static func isSpaceOrTab(_ u: UInt16) -> Bool { u == space || u == tab }
+    @inline(__always) static func isASCIIDigit(_ u: UInt16) -> Bool { u >= 0x30 && u <= 0x39 }
+    @inline(__always) static func isASCIIAlpha(_ u: UInt16) -> Bool { (u >= 0x41 && u <= 0x5A) || (u >= 0x61 && u <= 0x7A) }
+    @inline(__always) static func isASCIIAlnum(_ u: UInt16) -> Bool { isASCIIAlpha(u) || isASCIIDigit(u) }
+    @inline(__always) static func isSpaceOrTab(_ u: UInt16) -> Bool { u == space || u == tab }
 
     /// ASCII punctuation, per CommonMark's backslash-escape and flanking rules.
-    static func isASCIIPunctuation(_ u: UInt16) -> Bool {
+    @inline(__always) static func isASCIIPunctuation(_ u: UInt16) -> Bool {
         switch u {
         case 0x21...0x2F, 0x3A...0x40, 0x5B...0x60, 0x7B...0x7E:
             return true

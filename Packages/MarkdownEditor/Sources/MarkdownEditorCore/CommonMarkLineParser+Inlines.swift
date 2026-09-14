@@ -19,7 +19,18 @@ final class InlineScanner {
     let contentStart: Int
     let rangeEnd: Int
     let excluded: [NSRange]
+    /// Precomputed once: most inline regions (anything not directly inside a blockquote/list
+    /// marker continuation) have no excluded ranges at all, so every per-character check in the
+    /// hot scan loop can skip straight past `excludedRangeAt` without even calling it.
+    let hasExcluded: Bool
     let allowLinks: Bool
+    // Copied out of `engine.options` once at init: the main scan loop tests these flags on
+    // almost every character, and re-reading them through `engine` (an `unowned` reference)
+    // repeatedly would re-pay an unowned-access check each time instead of a plain field load.
+    let recognizesWikiLinks: Bool
+    let recognizesTags: Bool
+    let recognizesStrikethrough: Bool
+    let recognizesBareURLs: Bool
 
     var pos: Int
     var textStart: Int
@@ -44,68 +55,90 @@ final class InlineScanner {
         self.contentStart = range.location
         self.rangeEnd = NSMaxRange(range)
         self.excluded = excluded
+        self.hasExcluded = !excluded.isEmpty
         self.allowLinks = allowLinks
+        self.recognizesWikiLinks = engine.options.recognizesWikiLinks
+        self.recognizesTags = engine.options.recognizesTags
+        self.recognizesStrikethrough = engine.options.recognizesStrikethrough
+        self.recognizesBareURLs = engine.options.recognizesBareURLs
         self.pos = range.location
         self.textStart = range.location
+        // Most spans produce far fewer nodes than characters (runs of plain text collapse into
+        // one node each); a modest reserve avoids repeated reallocation without over-committing
+        // for very large single-paragraph ranges.
+        let estimate = min(4096, max(8, (self.rangeEnd - self.contentStart) / 8))
+        nodes.reserveCapacity(estimate)
+        parentOf.reserveCapacity(estimate)
+        removed.reserveCapacity(estimate)
     }
 
     func run() -> [MarkdownInline] {
         while pos < rangeEnd {
-            if let ex = excludedRangeAt(pos) {
+            if hasExcluded, let ex = excludedRangeAt(pos) {
                 flushText(before: pos)
                 pos = NSMaxRange(ex)
                 textStart = pos
                 continue
             }
             let u = units[pos]
-            if u == CharKind.backslash {
-                if pos + 1 < rangeEnd, excludedRangeAt(pos + 1) == nil, CharKind.isASCIIPunctuation(units[pos + 1]) {
+            // A `switch` over the raw code unit lets the compiler dispatch with a comparison
+            // tree keyed on value instead of walking ~10 independent `if`s sequentially for
+            // every plain character (the overwhelmingly common case, which hits `default`).
+            switch u {
+            case CharKind.backslash:
+                if pos + 1 < rangeEnd, (!hasExcluded || excludedRangeAt(pos + 1) == nil), CharKind.isASCIIPunctuation(units[pos + 1]) {
                     flushText(before: pos)
                     appendNode(.escape(backslashRange: NSRange(location: pos, length: 1)), range: NSRange(location: pos, length: 2))
                     pos += 2
                     textStart = pos
                     continue
                 }
-            }
-            if u == 0x0A || u == 0x0D {
+            case 0x0A, 0x0D:
                 handleTerminator()
                 continue
-            }
-            if u == CharKind.backtick, tryCodeSpan() { continue }
-            if u == CharKind.lessThan, tryAutolinkOrHTML() { continue }
-            if u == CharKind.asterisk || u == CharKind.underscore {
+            case CharKind.backtick:
+                if tryCodeSpan() { continue }
+            case CharKind.lessThan:
+                if tryAutolinkOrHTML() { continue }
+            case CharKind.asterisk, CharKind.underscore:
                 handleDelimiterRun(char: u)
                 continue
-            }
-            if engine.options.recognizesStrikethrough, u == CharKind.tilde, pos + 1 < rangeEnd, units[pos + 1] == CharKind.tilde {
-                if tryStrikethrough() { continue }
-            }
-            if u == CharKind.bang, pos + 1 < rangeEnd, units[pos + 1] == CharKind.openBracket {
-                if tryLinkOrImage(isImage: true) { continue }
-            }
-            if u == CharKind.openBracket {
-                if engine.options.recognizesWikiLinks, pos + 1 < rangeEnd, units[pos + 1] == CharKind.openBracket {
+            case CharKind.tilde:
+                if recognizesStrikethrough, pos + 1 < rangeEnd, units[pos + 1] == CharKind.tilde, tryStrikethrough() { continue }
+            case CharKind.bang:
+                if pos + 1 < rangeEnd, units[pos + 1] == CharKind.openBracket, tryLinkOrImage(isImage: true) { continue }
+            case CharKind.openBracket:
+                if recognizesWikiLinks, pos + 1 < rangeEnd, units[pos + 1] == CharKind.openBracket {
                     if tryWikiLink() { continue }
                 }
                 if tryLinkOrImage(isImage: false) { continue }
-            }
-            if engine.options.recognizesTags, u == CharKind.hash {
-                if tryTag() { continue }
-            }
-            if engine.options.recognizesBareURLs {
-                if tryBareURL() { continue }
+            case CharKind.hash:
+                if recognizesTags, tryTag() { continue }
+            case 0x68, 0x77:
+                // `tryBareURL` only ever matches when the character is 'h' or 'w'.
+                if recognizesBareURLs, tryBareURL() { continue }
+            default:
+                break
             }
             pos += 1
         }
         flushText(before: rangeEnd)
         resolveEmphasis()
 
-        var topIndices: [Int] = []
+        // Sort by (location, index) pairs rather than `nodes[$0].range.location < nodes[$1]...`:
+        // `MarkdownInline` can hold a `String` payload (link/image/tag/... destinations), so a
+        // comparator that subscripts `nodes` on every one of the O(n log n) comparisons would
+        // repeatedly touch (and ARC-traffic) those payloads purely to read an unrelated `Int`.
+        // Extracting the sort key up front means the sort itself only ever touches plain Ints,
+        // and each node is materialized at most once, in `top`.
+        var topEntries: [(location: Int, index: Int)] = []
         for i in 0..<nodes.count where !removed[i] && parentOf[i] == nil {
-            topIndices.append(i)
+            topEntries.append((nodes[i].range.location, i))
         }
-        topIndices.sort { nodes[$0].range.location < nodes[$1].range.location }
-        let top = topIndices.map { nodes[$0] }
+        topEntries.sort { $0.location < $1.location }
+        var top: [MarkdownInline] = []
+        top.reserveCapacity(topEntries.count)
+        for entry in topEntries { top.append(nodes[entry.index]) }
         return mergeAdjacentText(top).map { deepMerge($0) }
     }
 
@@ -126,8 +159,11 @@ final class InlineScanner {
         textStart = before
     }
 
+    @inline(__always)
     func excludedRangeAt(_ p: Int) -> NSRange? {
-        excluded.first(where: { $0.location == p })
+        guard hasExcluded else { return nil }
+        for r in excluded where r.location == p { return r }
+        return nil
     }
 
     func filteredExcluded(_ r: NSRange) -> [NSRange] {
@@ -135,13 +171,20 @@ final class InlineScanner {
     }
 
     func deepMerge(_ node: MarkdownInline) -> MarkdownInline {
+        // Leaf nodes (plain text, code spans, autolinks, ...) are the overwhelming majority and
+        // have no children at all; skip the struct copy plus merge/map dance entirely for them.
+        guard !node.children.isEmpty else { return node }
         var n = node
         n.children = mergeAdjacentText(n.children).map { deepMerge($0) }
         return n
     }
 
     func mergeAdjacentText(_ list: [MarkdownInline]) -> [MarkdownInline] {
+        // Nothing to merge with 0 or 1 elements; skip allocating a new array. This is the
+        // common case (most wrapped nodes have exactly one child).
+        guard list.count > 1 else { return list }
         var result: [MarkdownInline] = []
+        result.reserveCapacity(list.count)
         for node in list {
             if case .text = node.kind, let last = result.last, case .text = last.kind {
                 result[result.count - 1] = MarkdownInline(kind: .text, range: NSRange(location: last.range.location, length: NSMaxRange(node.range) - last.range.location))

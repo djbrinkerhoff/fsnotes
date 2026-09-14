@@ -259,9 +259,11 @@ public final class AppKitEditorAdapter: NSObject, NSTextViewDelegate, EditorSess
     /// `point` is expressed in text container coordinates (see `MarkdownTextView.mouseDown`).
     /// Returns the source range of the task's `[ ]`/`[x]` marker when `point` lands on a checkbox glyph.
     public func checkboxHit(at point: CGPoint) -> NSRange? {
-        guard let textLayoutManager = textView.textLayoutManager,
-              let fragment = textLayoutManager.textLayoutFragment(for: point) as? MarkdownLayoutFragment,
-              let rect = fragment.checkboxRect() else { return nil }
+        guard let textLayoutManager = textView.textLayoutManager else { return nil }
+        let containerWidth = textLayoutManager.textContainer?.size.width ?? textView.bounds.width
+        let candidate = (textLayoutManager.textLayoutFragment(for: point) as? MarkdownLayoutFragment).flatMap { $0.layoutFragmentFrame.minY <= point.y && $0.layoutFragmentFrame.maxY >= point.y ? $0 : nil }
+            ?? textLayoutManager.textLayoutFragment(for: CGPoint(x: max(1, containerWidth - 1), y: point.y)) as? MarkdownLayoutFragment
+        guard let fragment = candidate, let rect = fragment.checkboxRect() else { return nil }
         let origin = fragment.layoutFragmentFrame.origin
         let localPoint = CGPoint(x: point.x - origin.x, y: point.y - origin.y)
         guard rect.insetBy(dx: -4, dy: -4).contains(localPoint) else { return nil }

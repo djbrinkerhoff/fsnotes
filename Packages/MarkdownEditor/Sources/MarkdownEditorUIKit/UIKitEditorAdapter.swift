@@ -220,7 +220,11 @@ public final class UIKitEditorAdapter: NSObject, UITextViewDelegate, EditorSessi
     public func checkboxHit(at point: CGPoint) -> NSRange? {
         guard let tlm = textView.textLayoutManager else { return nil }
         let containerPoint = CGPoint(x: point.x - textView.textContainerInset.left, y: point.y - textView.textContainerInset.top)
-        guard let fragment = tlm.textLayoutFragment(for: containerPoint) as? MarkdownLayoutFragment else { return nil }
+        // Margin taps can fall left of an indented fragment frame; retry at the trailing edge of the same line.
+        let containerWidth = tlm.textContainer?.size.width ?? textView.bounds.width
+        let fragment = (tlm.textLayoutFragment(for: containerPoint) as? MarkdownLayoutFragment).flatMap { $0.layoutFragmentFrame.minY <= containerPoint.y && $0.layoutFragmentFrame.maxY >= containerPoint.y ? $0 : nil }
+            ?? tlm.textLayoutFragment(for: CGPoint(x: max(1, containerWidth - 1), y: containerPoint.y)) as? MarkdownLayoutFragment
+        guard let fragment else { return nil }
         guard let rect = fragment.checkboxRect() else { return nil }
         let local = CGPoint(x: containerPoint.x - fragment.layoutFragmentFrame.origin.x, y: containerPoint.y - fragment.layoutFragmentFrame.origin.y)
         guard rect.insetBy(dx: -8, dy: -8).contains(local) else { return nil }

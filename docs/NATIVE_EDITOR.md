@@ -71,24 +71,28 @@ No physical iPhone was available; iOS numbers are **unverified**.
 
 | Scenario | Target | Measured (release, Mac) | Verdict |
 | --- | --- | --- | --- |
-| Open 100 KB note to editable presentation | ≤ 500 ms | 12 ms (8,846 lines) | Passed |
-| Typing in 100 KB mixed note, editor-owned sync work | p95 ≤ 8 ms | p95 12.8 ms (parse 7.0, present 3.8, diff 1.4) | **Failed** (see below) |
-| 1 MB note + 2,000 tasks + 100 KB unbroken paragraph + 40-level list | no crash, no lost edit, report latency | p50 143 ms, p95 152 ms per keystroke; task toggle 154 ms; no crash, edit verified | Reported |
-| Parse 1 MB (26,567 lines) | well under 100 ms | 47 ms | Passed |
+| Open 100 KB note to editable presentation | ≤ 500 ms | 8.7 ms (8,846 lines) | Passed |
+| Typing in 100 KB mixed note, editor-owned sync work | p95 ≤ 8 ms | p95 7.9 ms on an idle machine, 8.7 ms with concurrent builds (parse 5.4–5.7, present 1.9–2.0, diff 0.2); before optimization 12.8 ms | At threshold (see below) |
+| 1 MB note + 2,000 tasks + 100 KB unbroken paragraph + 40-level list | no crash, no lost edit, report latency | p50 90 ms, p95 93 ms per keystroke; task toggle 95 ms; no crash, edit verified | Reported |
+| Parse 1 MB (26,567 lines) | well under 100 ms | 32 ms | Passed |
 | Repeated document switching | bounded | 50 sessions created and released, no retention (`testRepeatedDocumentSwitchingDoesNotLeak`) | Passed |
 | Continuous scrolling frame timing | no stalls > 50 ms | not measured (no UI harness) | Unverified |
 
-The 100 KB typing target is missed because every transaction reparses and re-presents the whole
-document. The dominant cost is the parser (55%), then the presentation builder (30%). The
-architecture keeps both behind protocols (`MarkdownParser`, `PresentationBuilding`); the next
-step is block-level reuse of unaffected top-level blocks between revisions. Thresholds were not
-changed to make this pass.
+Every transaction still reparses and re-presents the whole document; after a profiling pass
+(inline scanner dispatch, allocation-free substrings, depth threading in the builder, ASCII fast
+path in the diff) the 100 KB typing p95 sits right at the 8 ms target and exceeds it under load.
+The next step, if more headroom is needed, is block-level reuse of unaffected top-level blocks
+between revisions behind the existing `MarkdownParser` / `PresentationBuilding` protocols.
+Thresholds were not changed. 1 MB documents are usable but noticeably slower per keystroke.
 
 ## Tested matrix
 
 - macOS 15 host, Xcode 26.3, `FSNotes` scheme: builds; 8 offscreen NSTextView scenarios pass.
-- iOS 26.3 simulator (iPhone 17 Pro): `FSNotes iOS` builds. No runtime interaction test was run
-  (the simulator automation bridge was unavailable in this session).
+- iOS 26.3 simulator (iPhone 17 Pro): `FSNotes iOS` builds and was launched with the preference on;
+  a planted note opened through the `fsnotes://find` URL rendered with hidden heading and inline
+  markers, margin checkboxes, numbered and nested bullets and a quote rule (screenshot-verified).
+  Touch interaction (checkbox taps, typing, IME) was not exercised because the simulator automation
+  bridge was unavailable in this session.
 - No physical devices.
 
 ## Known limitations
