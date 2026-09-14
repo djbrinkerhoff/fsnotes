@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import MarkdownEditorCore
 
 class FileSystemEventManager {
     private var storage: Storage
@@ -241,7 +242,7 @@ class FileSystemEventManager {
     }
     
     private func reloadNote(note: Note) {
-        guard !note.isBlocked, note.container != .encryptedTextPack else {
+        guard note.container != .encryptedTextPack else {
             return
         }
 
@@ -249,6 +250,27 @@ class FileSystemEventManager {
               let creationDate = note.getFileCreationDate() else { return }
 
         if modificationDate.isGreaterThan(note.modifiedLocalAt) {
+
+            // A change whose on-disk content hash matches the hash of what we
+            // ourselves last wrote is a self-generated event (our own save
+            // reflected back through the FS watcher), not a real external
+            // change. Just resync the timestamp and stop.
+            if let contentURL = note.getContentFileURL(),
+               let onDiskData = try? Data(contentsOf: contentURL),
+               let lastHash = note.lastSavedContentHash,
+               onDiskData.hashValue == lastHash {
+
+                note.modifiedLocalAt = modificationDate
+                return
+            }
+
+            // Don't clobber unsaved / not-yet-flushed edits: fork a conflict
+            // file instead of silently overwriting the in-memory buffer.
+            if note.isDirty || note.hasPendingSave {
+                handleConflict(note: note, modificationDate: modificationDate)
+                return
+            }
+
             note.modifiedLocalAt = modificationDate
             note.cacheHash = nil
 
@@ -282,6 +304,8 @@ class FileSystemEventManager {
             self.delegate.notesTableView.reloadRow(note: note)
             self.delegate.reSort(note: note)
 
+            NotificationCenter.default.post(name: .fsnotesNoteDidReloadExternally, object: note)
+
             let editors = AppDelegate.getEditTextViews()
             for editor in editors {
                 if editor.note == note {
@@ -294,13 +318,74 @@ class FileSystemEventManager {
 
         if creationDate != note.creationDate {
             note.creationDate = creationDate
-                
+
             delegate.notesTableView.reloadDate(note: note)
             delegate.reSort(note: note)
-                
+
             // Reload images if note moved (cache invalidated)
             note.loadPreviewInfo()
         }
+    }
+
+    /// An external change landed on a note we still have unsaved (or not-yet
+    /// flushed) edits for. Rather than silently overwrite either side, write
+    /// our in-memory version out to a sibling "(CONFLICT ...)" file, register
+    /// it as a new note, then reload the on-disk version into the original
+    /// note and mark it clean.
+    private func handleConflict(note: Note, modificationDate: Date) {
+        note.discardPendingSave()
+
+        let ext = note.url.pathExtension
+        let name = note.url.deletingPathExtension().lastPathComponent
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH.mm.ss"
+        let dateString = dateFormatter.string(from: Date())
+
+        let conflictName = "\(name) (CONFLICT \(dateString)).\(ext)"
+        let conflictURL = note.url.deletingLastPathComponent().appendingPathComponent(conflictName)
+
+        let conflictSource = note.content.string
+        let conflictData = MarkdownFileCodec().encode(conflictSource, hasBOM: note.sourceHasBOM)
+
+        do {
+            try conflictData.write(to: conflictURL, options: .atomic)
+
+            if let conflictNote = storage.importNote(url: conflictURL) {
+                OperationQueue.main.addOperation {
+                    self.delegate.notesTableView.insertRows(notes: [conflictNote])
+                }
+            }
+        } catch {
+            print("Conflict write error: \(error)")
+        }
+
+        // Reload the on-disk version into the original note and mark clean.
+        note.modifiedLocalAt = modificationDate
+        note.cacheHash = nil
+
+        if var fsContent = note.getContent() {
+            _ = fsContent.loadAttachments(note)
+            note.content = fsContent
+        }
+
+        self.delegate.notesTableView.reloadRow(note: note)
+        self.delegate.reSort(note: note)
+
+        let editors = AppDelegate.getEditTextViews()
+        for editor in editors {
+            if editor.note == note {
+                DispatchQueue.main.async {
+                    editor.editorViewController?.refillEditArea(force: true)
+                }
+            }
+        }
+
+        NotificationCenter.default.post(
+            name: .fsnotesNoteConflictDetected,
+            object: note,
+            userInfo: ["conflictURL": conflictURL]
+        )
     }
     
     private func handleTextBundle(url: URL) -> URL {

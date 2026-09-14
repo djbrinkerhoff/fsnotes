@@ -72,8 +72,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // Called when the user discards a scene session.
     }
 
+    func applicationDidEnterBackground(_ application: UIApplication) {
+        Storage.shared().flushAllPendingSaves()
+    }
+
     func applicationWillTerminate(_ application: UIApplication) {
         UserDefaultsManagement.crashedLastTime = false
+
+        Storage.shared().flushAllPendingSaves()
 
         let temp = NSTemporaryDirectory()
 

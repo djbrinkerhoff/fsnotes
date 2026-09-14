@@ -40,10 +40,14 @@ class EditorViewController: NSViewController, NSTextViewDelegate, NSMenuItemVali
     public var encPassword: NSSecureTextField?
     public var encVerifyPassword: NSSecureTextField?
     public var encCompletionHandler: ((String) -> Void)?
+
+    /// TextKit 2 hidden-syntax editor shown instead of `vcEditor` when the preference is on.
+    public lazy var nativeHost = NativeEditorHost(editorViewController: self)
     
     public func initView() {
         guard let editor = vcEditor else { return }
         editor.delegate = self
+        NativeEditorHost.installMenuItems()
         
         initScrollObserver()
         
@@ -64,6 +68,19 @@ class EditorViewController: NSViewController, NSTextViewDelegate, NSMenuItemVali
     
     func validateMenuItem(_ menuItem: NSMenuItem) -> Bool {
         guard let vc = ViewController.shared() else { return false}
+
+        switch menuItem.identifier?.rawValue {
+        case "fsnotes.nativeEditor":
+            menuItem.state = NativeEditorHost.isEnabled ? .on : .off
+            return true
+        case "fsnotes.markdownSource":
+            menuItem.state = nativeHost.isSourceMode ? .on : .off
+            return nativeHost.isActive
+        case "fsnotes.copyMarkdown":
+            return nativeHost.isActive && (nativeHost.textView?.selectedRange().length ?? 0) > 0
+        default:
+            break
+        }
         
         // Current note
         var note = vc.editor.note
@@ -1089,6 +1106,20 @@ class EditorViewController: NSViewController, NSTextViewDelegate, NSMenuItemVali
         view.window?.title = plainTitle
     }
     
+    @IBAction func toggleNativeMarkdownEditor(_ sender: Any?) {
+        UserDefaultsManagement.useNativeMarkdownEditor.toggle()
+        for editor in AppDelegate.getEditTextViews() {
+            editor.editorViewController?.nativeHost.hide()
+            if let note = editor.note {
+                editor.fill(note: note, force: true)
+            }
+        }
+    }
+
+    @IBAction func toggleMarkdownSourceMode(_ sender: Any?) {
+        nativeHost.toggleSourceMode()
+    }
+
     func refillEditArea(force: Bool = false) {
         noteLoading = .incomplete
         vcPreviewButton?.state = vcEditor?.isPreviewEnabled() == true ? .on : .off

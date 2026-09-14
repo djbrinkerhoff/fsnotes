@@ -368,7 +368,9 @@
 		D730BD5B223BFEB200E69C93 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = D730BD59223BFEB200E69C93 /* RuntimeError.swift */; };
 		D730BD5C223BFEB200E69C93 /* RuntimeError.swift in Sources */ = {isa = PBXBuildFile; fileRef = D730BD59223BFEB200E69C93 /* RuntimeError.swift */; };
 		D7315ECF215ECF3000AB49D4 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7315ECE215ECF3000AB49D4 /* EditorView.swift */; };
+		4D4E0000000000000000A002 /* NativeEditorHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E0000000000000000A001 /* NativeEditorHost.swift */; };
 		D7315ED0215ECF3000AB49D4 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7315ECE215ECF3000AB49D4 /* EditorView.swift */; };
+		4D4E0000000000000000A003 /* NativeEditorHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E0000000000000000A001 /* NativeEditorHost.swift */; };
 		D7315ED2215ED15500AB49D4 /* SidebarSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7315ED1215ED15500AB49D4 /* SidebarSplitView.swift */; };
 		D7315ED3215ED15500AB49D4 /* SidebarSplitView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7315ED1215ED15500AB49D4 /* SidebarSplitView.swift */; };
 		D7315ED5215ED95600AB49D4 /* NSAppearance+.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7315ED4215ED95600AB49D4 /* NSAppearance+.swift */; };
@@ -843,6 +845,7 @@
 		09655FBE6708480EB9A6AFEA /* HomeLibraryModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 309C717A5DB242DBA84A67AB /* HomeLibraryModel.swift */; };
 		F22C12914DAF4CF0B06BDA0B /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F37671A727B14FC49DA3F819 /* HomeView.swift */; };
 		3FB88B3B649A4AA58A3D68C9 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30D79CF39354ED29B06AAA7 /* HomeViewController.swift */; };
+		4D4E0000000000000000A012 /* NativeEditorHost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E0000000000000000A011 /* NativeEditorHost.swift */; };
 		7C6F548BAA6F463FA06BC86C /* ViewController+Home.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF858643A124FCBA382F4AF /* ViewController+Home.swift */; };
 		B5D57D3A94D943AB94C686E2 /* FolderColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B5BFEAE172843BF8CF5D0A8 /* FolderColor.swift */; };
 		4990E403301F4D5297F2B6EB /* FolderColor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B5BFEAE172843BF8CF5D0A8 /* FolderColor.swift */; };
@@ -866,6 +869,14 @@
 		CCA2804B50174D539170ACDE /* LibraryScreens.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4AF3BB200BB417ABCAB99FD /* LibraryScreens.swift */; };
 		DE9F99DDCA7B457C85A01506 /* StarredNoteItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FE09C42E303400DBB3B6B24 /* StarredNoteItem.swift */; };
 		2988AFA5E6AE48C6A5E1F0A2 /* StarredNoteItem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2FE09C42E303400DBB3B6B24 /* StarredNoteItem.swift */; };
+		4D4E00000000000000000041 /* MarkdownEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4E00000000000000000011 /* MarkdownEditor */; };
+		4D4E00000000000000000042 /* MarkdownEditorCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4E00000000000000000012 /* MarkdownEditorCore */; };
+		4D4E00000000000000000043 /* MarkdownEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4E00000000000000000013 /* MarkdownEditor */; };
+		4D4E00000000000000000044 /* MarkdownEditorCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4E00000000000000000014 /* MarkdownEditorCore */; };
+		4D4E00000000000000000045 /* MarkdownEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4E00000000000000000015 /* MarkdownEditor */; };
+		4D4E00000000000000000046 /* MarkdownEditorCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4E00000000000000000016 /* MarkdownEditorCore */; };
+		4D4E00000000000000000047 /* MarkdownEditor in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4E00000000000000000017 /* MarkdownEditor */; };
+		4D4E00000000000000000048 /* MarkdownEditorCore in Frameworks */ = {isa = PBXBuildFile; productRef = 4D4E00000000000000000018 /* MarkdownEditorCore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -1083,6 +1094,7 @@
 		D730BD3B222DB9FC00E69C93 /* NameHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NameHelper.swift; sourceTree = "<group>"; };
 		D730BD59223BFEB200E69C93 /* RuntimeError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RuntimeError.swift; sourceTree = "<group>"; };
 		D7315ECE215ECF3000AB49D4 /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
+		4D4E0000000000000000A001 /* NativeEditorHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeEditorHost.swift; sourceTree = "<group>"; };
 		D7315ED1215ED15500AB49D4 /* SidebarSplitView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SidebarSplitView.swift; sourceTree = "<group>"; };
 		D7315ED4215ED95600AB49D4 /* NSAppearance+.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "NSAppearance+.swift"; sourceTree = "<group>"; };
 		D735E5BC1F2EF66000173215 /* NoteCellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteCellView.swift; sourceTree = "<group>"; };
@@ -1303,6 +1315,7 @@
 		309C717A5DB242DBA84A67AB /* HomeLibraryModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeLibraryModel.swift; sourceTree = "<group>"; };
 		F37671A727B14FC49DA3F819 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		E30D79CF39354ED29B06AAA7 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
+		4D4E0000000000000000A011 /* NativeEditorHost.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NativeEditorHost.swift; sourceTree = "<group>"; };
 		6AF858643A124FCBA382F4AF /* ViewController+Home.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ViewController+Home.swift"; sourceTree = "<group>"; };
 		5B5BFEAE172843BF8CF5D0A8 /* FolderColor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderColor.swift; sourceTree = "<group>"; };
 		19B6651835DE43619C289914 /* NoteListDisplayMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NoteListDisplayMode.swift; sourceTree = "<group>"; };
@@ -1324,6 +1337,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				11E00000000000000000000D /* RNCryptor in Frameworks */,
+				4D4E00000000000000000042 /* MarkdownEditorCore in Frameworks */,
+				4D4E00000000000000000041 /* MarkdownEditor in Frameworks */,
 				11E00000000000000000000E /* ZipArchive in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1334,6 +1349,8 @@
 			files = (
 				11E000000000000000000007 /* libcmark_gfm in Frameworks */,
 				11E000000000000000000008 /* RNCryptor in Frameworks */,
+				4D4E00000000000000000044 /* MarkdownEditorCore in Frameworks */,
+				4D4E00000000000000000043 /* MarkdownEditor in Frameworks */,
 				11E000000000000000000009 /* ZipArchive in Frameworks */,
 				11E00000000000000000000A /* DropDown in Frameworks */,
 				11E00000000000000000000B /* SwipeCellKit in Frameworks */,
@@ -1350,6 +1367,8 @@
 			files = (
 				11E000000000000000000001 /* libcmark_gfm in Frameworks */,
 				11E000000000000000000002 /* RNCryptor in Frameworks */,
+				4D4E00000000000000000046 /* MarkdownEditorCore in Frameworks */,
+				4D4E00000000000000000045 /* MarkdownEditor in Frameworks */,
 				11E000000000000000000003 /* ZipArchive in Frameworks */,
 				D7D2F2822B54BE59003DCA47 /* Shout in Frameworks */,
 				D70F830628CE8596004818C5 /* Git in Frameworks */,
@@ -1362,6 +1381,8 @@
 			files = (
 				11E000000000000000000004 /* libcmark_gfm in Frameworks */,
 				11E000000000000000000005 /* RNCryptor in Frameworks */,
+				4D4E00000000000000000048 /* MarkdownEditorCore in Frameworks */,
+				4D4E00000000000000000047 /* MarkdownEditor in Frameworks */,
 				11E000000000000000000006 /* ZipArchive in Frameworks */,
 				D7D2F27E2B54BD42003DCA47 /* Shout in Frameworks */,
 				D70F830428CE858E004818C5 /* Git in Frameworks */,
@@ -1946,6 +1967,7 @@
 				D7DA9E1D21031901001CF0BE /* OutlineHeaderView.swift */,
 				D7315ED1215ED15500AB49D4 /* SidebarSplitView.swift */,
 				D7315ECE215ECF3000AB49D4 /* EditorView.swift */,
+				4D4E0000000000000000A001 /* NativeEditorHost.swift */,
 				D77CC040216A608500582B97 /* EditorScrollView.swift */,
 				D7D1DE67216D05A800AC1845 /* NameTextField.swift */,
 				2799407B218484C900727B20 /* TitleBarView.swift */,
@@ -1983,6 +2005,7 @@
 				263EC88B97F346AFA4BE642F /* DailyNotesView.swift */,
 				F6EF9ED39DDF4D1D96A88311 /* OnboardingView.swift */,
 				E30D79CF39354ED29B06AAA7 /* HomeViewController.swift */,
+				4D4E0000000000000000A011 /* NativeEditorHost.swift */,
 				F37671A727B14FC49DA3F819 /* HomeView.swift */,
 				D7BDFE6B201F6DC200897A58 /* EditTextView.swift */,
 				D7BDFE69201F68B700897A58 /* NotesTableView.swift */,
@@ -2087,6 +2110,8 @@
 			name = "FSNotes iOS Share Extension";
 			packageProductDependencies = (
 				11D00000000000000000000D /* RNCryptor */,
+				4D4E00000000000000000012 /* MarkdownEditorCore */,
+				4D4E00000000000000000011 /* MarkdownEditor */,
 				11D00000000000000000000E /* ZipArchive */,
 			);
 			productName = "FSNotes iOS Share";
@@ -2113,6 +2138,8 @@
 			packageProductDependencies = (
 				11D000000000000000000007 /* libcmark_gfm */,
 				11D000000000000000000008 /* RNCryptor */,
+				4D4E00000000000000000014 /* MarkdownEditorCore */,
+				4D4E00000000000000000013 /* MarkdownEditor */,
 				11D000000000000000000009 /* ZipArchive */,
 				11D00000000000000000000A /* DropDown */,
 				11D00000000000000000000B /* SwipeCellKit */,
@@ -2143,6 +2170,8 @@
 			packageProductDependencies = (
 				11D000000000000000000001 /* libcmark_gfm */,
 				11D000000000000000000002 /* RNCryptor */,
+				4D4E00000000000000000016 /* MarkdownEditorCore */,
+				4D4E00000000000000000015 /* MarkdownEditor */,
 				11D000000000000000000003 /* ZipArchive */,
 				D70F830528CE8596004818C5 /* Git */,
 				D7D2F2812B54BE59003DCA47 /* Shout */,
@@ -2170,6 +2199,8 @@
 			packageProductDependencies = (
 				11D000000000000000000004 /* libcmark_gfm */,
 				11D000000000000000000005 /* RNCryptor */,
+				4D4E00000000000000000018 /* MarkdownEditorCore */,
+				4D4E00000000000000000017 /* MarkdownEditor */,
 				11D000000000000000000006 /* ZipArchive */,
 				D70F830328CE858E004818C5 /* Git */,
 				D7D2F27D2B54BD42003DCA47 /* Shout */,
@@ -2289,6 +2320,7 @@
 			packageReferences = (
 				11C000000000000000000001 /* XCRemoteSwiftPackageReference "libcmark_gfm" */,
 				11C000000000000000000002 /* XCRemoteSwiftPackageReference "RNCryptor" */,
+				4D4E00000000000000000001 /* XCLocalSwiftPackageReference "Packages/MarkdownEditor" */,
 				11C000000000000000000003 /* XCRemoteSwiftPackageReference "ZipArchive" */,
 				11C000000000000000000004 /* XCRemoteSwiftPackageReference "DropDown" */,
 				11C000000000000000000005 /* XCRemoteSwiftPackageReference "SwipeCellKit" */,
@@ -2505,6 +2537,7 @@
 				B5D57D3A94D943AB94C686E2 /* FolderColor.swift in Sources */,
 				7C6F548BAA6F463FA06BC86C /* ViewController+Home.swift in Sources */,
 				3FB88B3B649A4AA58A3D68C9 /* HomeViewController.swift in Sources */,
+				4D4E0000000000000000A012 /* NativeEditorHost.swift in Sources */,
 				F22C12914DAF4CF0B06BDA0B /* HomeView.swift in Sources */,
 				09655FBE6708480EB9A6AFEA /* HomeLibraryModel.swift in Sources */,
 				ADCC79F3547A439F93D40641 /* EditorViewController+Blocks.swift in Sources */,
@@ -2889,6 +2922,7 @@
 				D7BCF035296B0DAA00F72A4F /* AboutImageView.swift in Sources */,
 				D7013E0026C3B116006F58E3 /* NSColor+.swift in Sources */,
 				D7315ECF215ECF3000AB49D4 /* EditorView.swift in Sources */,
+				4D4E0000000000000000A002 /* NativeEditorHost.swift in Sources */,
 				D7A9C1D62910784400905619 /* Project+Git.swift in Sources */,
 				D7153DFD2285A93300A2C20F /* AboutWindowController.swift in Sources */,
 				11F2D4F62F104322002E4E47 /* Project+Date.swift in Sources */,
@@ -3130,6 +3164,7 @@
 				D7BCF036296B0DAA00F72A4F /* AboutImageView.swift in Sources */,
 				D7013E0126C3B116006F58E3 /* NSColor+.swift in Sources */,
 				D7315ED0215ECF3000AB49D4 /* EditorView.swift in Sources */,
+				4D4E0000000000000000A003 /* NativeEditorHost.swift in Sources */,
 				D7E81C3A1F925B5F00416A91 /* NotesTableView.swift in Sources */,
 				D7A9C1D72910784400905619 /* Project+Git.swift in Sources */,
 				D7153DFE2285A93300A2C20F /* AboutWindowController.swift in Sources */,
@@ -3531,7 +3566,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 12.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				PRODUCT_BUNDLE_IDENTIFIER = co.fluder.FSNotes;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -3566,7 +3601,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 12.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = co.fluder.FSNotes;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -3603,7 +3638,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 12.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 7.3.3;
 				OTHER_SWIFT_FLAGS = "$(inherited)";
 				PRODUCT_BUNDLE_IDENTIFIER = co.fluder.FSNotes;
@@ -3643,7 +3678,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 12.4;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				MARKETING_VERSION = 7.3.3;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = co.fluder.FSNotes;
@@ -3783,6 +3818,13 @@
 		};
 /* End XCRemoteSwiftPackageReference section */
 
+/* Begin XCLocalSwiftPackageReference section */
+		4D4E00000000000000000001 /* XCLocalSwiftPackageReference "Packages/MarkdownEditor" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/MarkdownEditor;
+		};
+/* End XCLocalSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
 		11D000000000000000000001 /* libcmark_gfm */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -3893,6 +3935,38 @@
 			isa = XCSwiftPackageProductDependency;
 			package = D7D2F27C2B54BD42003DCA47 /* XCRemoteSwiftPackageReference "Shout" */;
 			productName = Shout;
+		};
+		4D4E00000000000000000011 /* MarkdownEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MarkdownEditor;
+		};
+		4D4E00000000000000000012 /* MarkdownEditorCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MarkdownEditorCore;
+		};
+		4D4E00000000000000000013 /* MarkdownEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MarkdownEditor;
+		};
+		4D4E00000000000000000014 /* MarkdownEditorCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MarkdownEditorCore;
+		};
+		4D4E00000000000000000015 /* MarkdownEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MarkdownEditor;
+		};
+		4D4E00000000000000000016 /* MarkdownEditorCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MarkdownEditorCore;
+		};
+		4D4E00000000000000000017 /* MarkdownEditor */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MarkdownEditor;
+		};
+		4D4E00000000000000000018 /* MarkdownEditorCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = MarkdownEditorCore;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

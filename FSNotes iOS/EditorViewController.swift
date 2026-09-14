@@ -37,6 +37,9 @@ class EditorViewController: UIViewController,
 
     @IBOutlet weak var editArea: EditTextView!
 
+    /// TextKit 2 hidden-syntax editor shown over `editArea` when the preference is on.
+    lazy var nativeHost = NativeEditorHost(controller: self)
+
     var rowUpdaterTimer = Timer()
 
     public var tagsTimer: Timer?
@@ -266,12 +269,21 @@ class EditorViewController: UIViewController,
         editArea.note = note
 
         if note.previewState {
+            nativeHost.hide()
             loadPreviewView()
             completion?()
             return
         }
 
         getPreviewView()?.removeFromSuperview()
+
+        if NativeEditorHost.isEnabled, nativeHost.show(note: note, legacy: editArea) {
+            editArea.attributedText = NSAttributedString()
+            editArea.initUndoRedoButons()
+            completion?()
+            return
+        }
+        nativeHost.hide()
         fillEditor(note: note, selectedRange: selectedRange)
         completion?()
     }
@@ -698,8 +710,6 @@ class EditorViewController: UIViewController,
                 self.tagsTimer?.invalidate()
                 self.tagsTimer = Timer.scheduledTimer(timeInterval: 2.5, target: self, selector: #selector(self.scanTags), userInfo: nil, repeats: false)
             }
-
-            usleep(100000)
         }
         self.storageQueue.addOperation(operation)
 
@@ -780,6 +790,10 @@ class EditorViewController: UIViewController,
     }
 
     @objc func boldPressed(){
+        if nativeHost.isActive {
+            nativeHost.adapter?.performFormat(.strong)
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.bold()
@@ -807,6 +821,10 @@ class EditorViewController: UIViewController,
     }
     
     @objc func italicPressed(){
+        if nativeHost.isActive {
+            nativeHost.adapter?.performFormat(.emphasis)
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.italic()
@@ -814,6 +832,10 @@ class EditorViewController: UIViewController,
     }
 
     @objc func strikePressed(){
+        if nativeHost.isActive {
+            nativeHost.adapter?.performFormat(.strikethrough)
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.strike()
@@ -821,6 +843,10 @@ class EditorViewController: UIViewController,
     }
 
     @objc func underlinePressed(){
+        if nativeHost.isActive {
+            return // Markdown has no underline
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.underline()
@@ -828,6 +854,10 @@ class EditorViewController: UIViewController,
     }
 
     @objc func indentPressed(){
+        if nativeHost.isActive {
+            nativeHost.adapter?.handleTab()
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.tab()
@@ -835,6 +865,10 @@ class EditorViewController: UIViewController,
     }
     
     @objc func unIndentPressed(){
+        if nativeHost.isActive {
+            nativeHost.adapter?.handleShiftTab()
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.unTab()
@@ -842,6 +876,11 @@ class EditorViewController: UIViewController,
     }
     
     @objc func headerPressed() {
+        if nativeHost.isActive {
+            let level = (nativeHost.session?.headingLevelAtSelection() ?? 0) + 1
+            nativeHost.adapter?.setHeading(level > 6 ? nil : level)
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.header("#")
@@ -861,6 +900,10 @@ class EditorViewController: UIViewController,
     }
 
     @objc func codeBlockButton() {
+        if nativeHost.isActive {
+            nativeHost.session?.insertCodeBlock()
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.codeBlock()
@@ -868,6 +911,11 @@ class EditorViewController: UIViewController,
     }
 
     @objc func quotePressed() {
+        if nativeHost.isActive {
+            nativeHost.session?.toggleQuote()
+            AudioServicesPlaySystemSound(1519)
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.quote()
@@ -877,6 +925,11 @@ class EditorViewController: UIViewController,
     }
     
     @objc func todoPressed() {
+        if nativeHost.isActive {
+            nativeHost.adapter?.toggleList(.task)
+            AudioServicesPlaySystemSound(1519)
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.todo()
@@ -886,6 +939,11 @@ class EditorViewController: UIViewController,
     }
 
     @objc func orderedListPressed() {
+        if nativeHost.isActive {
+            nativeHost.adapter?.toggleList(.bullet)
+            AudioServicesPlaySystemSound(1519)
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.list()
@@ -895,6 +953,11 @@ class EditorViewController: UIViewController,
     }
 
     @objc func numberedListPressed() {
+        if nativeHost.isActive {
+            nativeHost.adapter?.toggleList(.ordered)
+            AudioServicesPlaySystemSound(1519)
+            return
+        }
         if let note = note {
             let formatter = TextFormatter(textView: editArea, note: note)
             formatter.orderedList()
@@ -972,6 +1035,10 @@ class EditorViewController: UIViewController,
     }
 
     @objc func preferredContentSizeChanged() {
+        if nativeHost.isActive {
+            nativeHost.applyTheme()
+            return
+        }
         if let n = note {
             self.fill(note: n)
         }

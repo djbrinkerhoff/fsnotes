@@ -211,10 +211,9 @@ class NotesTableView: UITableView,
         var note = notes[indexPath.row]
         note.loadPreviewState()
         
-        let evc = UIApplication.getEVC()
-        if let editArea = evc.editArea, let u = editArea.undoManager {
-            u.removeAllActions()
-        }
+        // Undo history now lives per-note on `note.undoManager`
+        // (EditTextView.undoManager returns the current note's manager), so
+        // switching selection no longer needs to clear a shared instance.
 
         if note.container == .encryptedTextPack {
             viewDelegate?.unLock(notes: [note], completion: { notes in

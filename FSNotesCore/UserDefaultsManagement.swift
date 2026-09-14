@@ -67,6 +67,8 @@ public class UserDefaultsManagement {
         static let CodeFontNameKey = "codeFont"
         static let CodeFontSizeKey = "codeFontSize"
         static let codeBlockHighlight = "codeBlockHighlight"
+        static let useNativeMarkdownEditor = "useNativeMarkdownEditor"
+        static let nativeEditorSourceMode = "nativeEditorSourceMode"
         static let CodeBlocksWithSyntaxHighlighting = "codeBlocksWithSyntaxHighlighting"
         static let codeTheme = "codeTheme2025"
         static let ContinuousSpellChecking = "continuousSpellChecking"
@@ -518,6 +520,19 @@ public class UserDefaultsManagement {
         set {
             shared?.set(newValue, forKey: Constants.codeBlockHighlight)
         }
+    }
+
+    /// When enabled, notes open in the TextKit 2 hidden-syntax editor (MarkdownEditor package)
+    /// instead of the legacy live-preview editor.
+    public static var useNativeMarkdownEditor: Bool {
+        get { shared?.object(forKey: Constants.useNativeMarkdownEditor) as? Bool ?? false }
+        set { shared?.set(newValue, forKey: Constants.useNativeMarkdownEditor) }
+    }
+
+    /// Last chosen native editor mode: true shows raw Markdown syntax.
+    public static var nativeEditorSourceMode: Bool {
+        get { shared?.object(forKey: Constants.nativeEditorSourceMode) as? Bool ?? false }
+        set { shared?.set(newValue, forKey: Constants.nativeEditorSourceMode) }
     }
 
     static var lastSelectedURL: URL? {
@@ -1813,4 +1828,9 @@ public class UserDefaultsManagement {
             shared?.set(newValue, forKey: Constants.boldKey)
         }
     }
+}
+
+public extension Notification.Name {
+    /// Posted when the user switches between the legacy and native Markdown editors.
+    static let fsnotesNativeEditorPreferenceDidChange = Notification.Name("es.fsnot.nativeEditorPreferenceDidChange")
 }

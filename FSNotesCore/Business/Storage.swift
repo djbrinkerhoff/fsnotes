@@ -61,6 +61,10 @@ class Storage {
     public var plainWriter = OperationQueue.init()
     public var ciphertextWriter = OperationQueue.init()
 
+    /// Single serial queue shared by every note's debounced autosave
+    /// (`Note.scheduleSave`), so writes for different notes never race.
+    public let autosaveQueue = DispatchQueue(label: "es.fsnot.storage.autosave")
+
     public var searchQuery: SearchQuery = SearchQuery()
 
     private var sortByState: SortBy = .modificationDate
@@ -1627,9 +1631,32 @@ class Storage {
         
         let note = Note(url: url, with: project!)
         add(note)
-        
+
         return note
+    }
+
+    /// Synchronously flushes every note's debounced autosave. Call this at
+    /// app-termination / background / resign-active points so nothing is
+    /// lost to the ~0.6s debounce window.
+    public func flushAllPendingSaves() {
+        for note in noteList where note.hasPendingSave {
+            note.flushPendingSave()
+        }
     }
 }
 
 extension String: Error {}
+
+public extension Notification.Name {
+    /// Posted (object: the Note) after `FileSystemEventManager`/`CloudDriveManager`
+    /// reload a *clean* note's content because of an external file change, so an
+    /// open editor can refresh its buffer while preserving the caret.
+    static let fsnotesNoteDidReloadExternally = Notification.Name("fsnotesNoteDidReloadExternally")
+
+    /// Posted (object: the Note, userInfo: ["conflictURL": URL]) when an external
+    /// change was detected on a *dirty* note (unsaved edits / pending autosave).
+    /// The in-memory version was written out to the conflict sibling file at
+    /// `conflictURL` and registered as a new note; the original note was reloaded
+    /// from disk and marked clean.
+    static let fsnotesNoteConflictDetected = Notification.Name("fsnotesNoteConflictDetected")
+}

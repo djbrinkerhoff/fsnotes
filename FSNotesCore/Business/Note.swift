@@ -11,6 +11,7 @@ import Foundation
 import RNCryptor
 import ZipArchive
 import LocalAuthentication
+import MarkdownEditorCore
 
 public class Note: NSObject  {
     @objc var title: String = ""
@@ -73,6 +74,44 @@ public class Note: NSObject  {
     public var scrollOffset: CGFloat?
 
     public var codeBlockRangesCache: [NSRange]?
+
+    // MARK: - Raw source seam (byte fidelity)
+
+    /// Whether the on-disk content file was decoded with a leading UTF-8 BOM.
+    public private(set) var sourceHasBOM: Bool = false
+    /// Dominant line-ending style detected in the on-disk content file.
+    public private(set) var sourceLineEnding: LineEnding = .lf
+    /// True when the on-disk bytes were not valid UTF-8 and had to be decoded lossily.
+    public private(set) var sourceIsLossy: Bool = false
+    /// Hash of the decoded source text as of the last successful load.
+    public private(set) var loadedSourceHash: Int?
+
+    /// Modification date recorded immediately after our own last successful write.
+    public private(set) var lastSavedModificationDate: Date?
+    /// Hash of the raw bytes written to disk on our own last successful write.
+    /// Used to distinguish self-generated file system events from real external changes.
+    public private(set) var lastSavedContentHash: Int?
+    /// Convenience token combining the two above, mostly useful for logging/debugging.
+    public private(set) var lastSavedRevisionToken: String?
+
+    private static let fileCoordinator = NSFileCoordinator(filePresenter: nil)
+    private static let autosaveDelay: TimeInterval = 0.6
+
+    private let pendingSaveLock = NSRecursiveLock()
+    private var pendingSaveWorkItem: DispatchWorkItem?
+    private var pendingSyncContentOnSave: Bool = true
+
+    /// True from the moment an edit is scheduled until it has actually been flushed to disk.
+    public private(set) var isDirty = false
+    /// The most recently scheduled (not yet written) plain-text source, if any.
+    public private(set) var pendingSource: String?
+
+    /// True while there is a debounced autosave waiting to run.
+    public var hasPendingSave: Bool {
+        pendingSaveLock.lock()
+        defer { pendingSaveLock.unlock() }
+        return pendingSource != nil
+    }
 
     // Load exist
     
@@ -770,25 +809,55 @@ public class Note: NSObject  {
     }
     
     func getContent() -> NSMutableAttributedString? {
+        guard let text = loadSource() else { return nil }
+
+        return NSMutableAttributedString(string: text)
+    }
+
+    /// Reads the content file's raw bytes, decodes them via `MarkdownFileCodec`
+    /// (preserving BOM/line-ending fidelity), and records the decode metadata
+    /// on the note. Returns `nil` for locked encrypted notes, matching the
+    /// previous `getContent()` behavior.
+    public func loadSource() -> String? {
         guard container != .encryptedTextPack, let url = getContentFileURL() else { return nil }
 
         do {
-            return try NSMutableAttributedString(url: url, options: [
-                .documentType : NSAttributedString.DocumentType.plain,
-                .characterEncoding : NSNumber(value: String.Encoding.utf8.rawValue)
-            ], documentAttributes: nil)
-        } catch {
-            if let data = try? Data(contentsOf: url) {
-                let encoding = NSString.stringEncoding(for: data, encodingOptions: nil, convertedString: nil, usedLossyConversion: nil)
+            let data = try Note.coordinatedRead(from: url)
+            let decoded = MarkdownFileCodec().decode(data)
 
-                return try? NSMutableAttributedString(url: url, options: [
-                    .documentType : NSAttributedString.DocumentType.plain,
-                    .characterEncoding : NSNumber(value: encoding)
-                ], documentAttributes: nil)
+            sourceHasBOM = decoded.hasBOM
+            sourceLineEnding = decoded.lineEnding
+            sourceIsLossy = decoded.isLossy
+            loadedSourceHash = decoded.text.hashValue
+
+            return decoded.text
+        } catch {
+            NSLog("loadSource error: %@", error.localizedDescription)
+            return nil
+        }
+    }
+
+    private static func coordinatedRead(from url: URL) throws -> Data {
+        var coordinatorError: NSError?
+        var result: Data?
+        var thrown: Error?
+
+        fileCoordinator.coordinate(readingItemAt: url, options: [], error: &coordinatorError) { coordinatedURL in
+            do {
+                result = try Data(contentsOf: coordinatedURL)
+            } catch {
+                thrown = error
             }
         }
-        
-        return nil
+
+        if let coordinatorError = coordinatorError { throw coordinatorError }
+        if let thrown = thrown { throw thrown }
+
+        guard let data = result else {
+            throw NSError(domain: "es.fsnot.note", code: -1, userInfo: [NSLocalizedDescriptionKey: "Coordinated read returned no data"])
+        }
+
+        return data
     }
     
     func isMarkdown() -> Bool {
@@ -980,50 +1049,35 @@ public class Note: NSObject  {
         return fileName
     }
 
+    /// Legacy macOS editor entry point. Keeps `content` (with attachments) in
+    /// sync immediately, then routes the actual disk write through the
+    /// debounced autosave pipeline instead of writing + sleeping inline.
     public func save(attributed: NSAttributedString) {
         if container == .encryptedTextPack { return }
-        
+
         guard let copy = attributed.copy() as? NSAttributedString else {
             return
         }
-        
+
+        isBlocked = true
         modifiedLocalAt = Date()
-        
-        let operation = BlockOperation()
-        operation.addExecutionBlock { [weak self] in
-            guard let self = self else {
-                return
-            }
-            
-            if operation.isCancelled {
-                return
-            }
-            
-            let mutable = NSMutableAttributedString(attributedString: copy)
-            self.save(content: mutable)
-            usleep(1000000)
-            
-            if !operation.isCancelled {
-                self.isBlocked = false
-            }
-        }
-        
-        Storage.shared().plainWriter.cancelAllOperations()
-        Storage.shared().plainWriter.addOperation(operation)
+
+        let mutable = NSMutableAttributedString(attributedString: copy)
+        self.content = mutable
+
+        let plain = mutable.unloadAttachments()
+        scheduleSave(source: plain.string, syncContent: false)
     }
 
+    /// Legacy iOS editor entry point (`textViewDidChange`). Same debounce
+    /// treatment as `save(attributed:)`.
     public func save(content: NSMutableAttributedString) {
-        writeLock.lock()
-        defer { writeLock.unlock() }
-
         self.content = content
 
         let copy = content.unloadAttachments()
         modifiedLocalAt = Date()
 
-        if write(attributedString: copy) {
-            Storage.shared().add(self)
-        }
+        scheduleSave(source: copy.string, syncContent: false)
     }
 
     public func replace(tag: String, with string: String) {
@@ -1035,23 +1089,144 @@ public class Note: NSObject  {
         content.replaceTag(name: tag, with: "")
         _ = save()
     }
-        
+
     public func save() -> Bool {
         let attributedString = self.content.unloadAttachments()
 
         return write(attributedString: attributedString)
     }
 
+    /// Writes the note's raw plain-text source, byte-for-byte through
+    /// `MarkdownFileCodec` (preserving the BOM state recorded at load time).
+    /// Goes through the same `write(data:)` path as `write(attributedString:)`
+    /// for TextBundle info.json handling, encrypted repacking, file
+    /// attributes, and isBlocked/modifiedLocalAt bookkeeping.
+    public func save(source: String, completion: ((Bool) -> Void)? = nil) {
+        performSourceSave(source: source, syncContent: true, completion: completion)
+    }
+
+    private func performSourceSave(source: String, syncContent: Bool, completion: ((Bool) -> Void)?) {
+        guard container != .encryptedTextPack else {
+            completion?(false)
+            return
+        }
+
+        let data = MarkdownFileCodec().encode(source, hasBOM: sourceHasBOM)
+        modifiedLocalAt = Date()
+
+        let success = write(data: data)
+
+        if success {
+            if syncContent {
+                // Only the raw-source editor path resets `content` here: it
+                // has no attachments to preserve. The legacy attributed-string
+                // callers (save(attributed:)/save(content:)) already updated
+                // `content` themselves (with attachments intact) before
+                // scheduling, so they pass syncContent: false to avoid
+                // clobbering that richer representation with plain text.
+                content = NSMutableAttributedString(string: source)
+            }
+
+            loadedSourceHash = source.hashValue
+            Storage.shared().add(self)
+        }
+
+        completion?(success)
+    }
+
+    // MARK: - Debounced autosave
+
+    /// Stores `source` as the pending save and (re)schedules a write ~0.6s
+    /// from now on a queue shared by every note in this Storage, cancelling
+    /// any previously scheduled write for this note.
+    public func scheduleSave(source: String) {
+        scheduleSave(source: source, syncContent: true)
+    }
+
+    private func scheduleSave(source: String, syncContent: Bool) {
+        pendingSaveLock.lock()
+        pendingSource = source
+        pendingSyncContentOnSave = syncContent
+        isDirty = true
+
+        pendingSaveWorkItem?.cancel()
+
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.performPendingSave()
+        }
+        pendingSaveWorkItem = workItem
+        pendingSaveLock.unlock()
+
+        Storage.shared().autosaveQueue.asyncAfter(deadline: .now() + Note.autosaveDelay, execute: workItem)
+    }
+
+    /// Performs the pending write synchronously (if any) and cancels the
+    /// scheduled debounce timer. Safe to call even when nothing is pending.
+    public func flushPendingSave() {
+        pendingSaveLock.lock()
+        let workItem = pendingSaveWorkItem
+        pendingSaveWorkItem = nil
+        pendingSaveLock.unlock()
+
+        workItem?.cancel()
+        performPendingSave()
+    }
+
+    /// Cancels any pending debounced save without writing it, and marks the
+    /// note clean. Used when an external reload has just replaced the
+    /// in-memory content (e.g. after conflict resolution).
+    public func discardPendingSave() {
+        pendingSaveLock.lock()
+        pendingSaveWorkItem?.cancel()
+        pendingSaveWorkItem = nil
+        pendingSource = nil
+        isDirty = false
+        pendingSaveLock.unlock()
+    }
+
+    private func performPendingSave() {
+        pendingSaveLock.lock()
+        guard let source = pendingSource else {
+            pendingSaveLock.unlock()
+            return
+        }
+        let syncContent = pendingSyncContentOnSave
+        pendingSource = nil
+        pendingSaveWorkItem = nil
+        pendingSaveLock.unlock()
+
+        performSourceSave(source: source, syncContent: syncContent) { [weak self] _ in
+            self?.isDirty = false
+            self?.isBlocked = false
+        }
+    }
+
     private func write(attributedString: NSAttributedString) -> Bool {
+        let fileWrapper = getFileWrapper(attributedString: attributedString)
+
+        guard let data = fileWrapper.regularFileContents else {
+            NSLog("Write error: file wrapper did not produce regular file contents")
+            return false
+        }
+
+        return write(data: data)
+    }
+
+    /// Shared write path for both the attributed-string (legacy editors) and
+    /// raw-source (`save(source:)`) flows: handles TextBundle info.json,
+    /// coordinated atomic writes, file attributes, encrypted repacking, and
+    /// isBlocked/lastSaved* bookkeeping.
+    private func write(data: Data) -> Bool {
         writeLock.lock()
         defer { writeLock.unlock() }
 
+        isBlocked = true
+        defer { isBlocked = false }
+
         let url = getURL()
         let attributes = getFileAttributes()
-        
-        do {
-            let fileWrapper = getFileWrapper(attributedString: attributedString)
 
+        do {
             if isTextBundle() {
                 let jsonUrl = url.appendingPathComponent("info.json")
                 let fileExist = FileManager.default.fileExists(atPath: jsonUrl.path)
@@ -1068,13 +1243,16 @@ public class Note: NSObject  {
             let contentSrc: URL? = getContentFileURL()
             let dst = contentSrc ?? getContentSaveURL()
 
-            var originalContentsURL: URL? = nil
-            if let contentSrc = contentSrc {
-                originalContentsURL = contentSrc
-            }
-
-            try fileWrapper.write(to: dst, options: .atomic, originalContentsURL: originalContentsURL)
+            try Note.coordinatedWrite(data: data, to: dst)
             try FileManager.default.setAttributes(attributes, ofItemAtPath: dst.path)
+
+            let onDiskModDate = (try? FileManager.default.attributesOfItem(atPath: dst.path))?[.modificationDate] as? Date
+            let savedDate = onDiskModDate ?? Date()
+            let savedHash = data.hashValue
+
+            lastSavedModificationDate = savedDate
+            lastSavedContentHash = savedHash
+            lastSavedRevisionToken = "\(savedHash):\(savedDate.timeIntervalSince1970)"
 
             if decryptedTemporarySrc != nil {
                 Storage.shared().ciphertextWriter.cancelAllOperations()
@@ -1089,6 +1267,22 @@ public class Note: NSObject  {
         }
 
         return true
+    }
+
+    private static func coordinatedWrite(data: Data, to url: URL) throws {
+        var coordinatorError: NSError?
+        var thrown: Error?
+
+        fileCoordinator.coordinate(writingItemAt: url, options: .forReplacing, error: &coordinatorError) { coordinatedURL in
+            do {
+                try data.write(to: coordinatedURL, options: .atomic)
+            } catch {
+                thrown = error
+            }
+        }
+
+        if let coordinatorError = coordinatorError { throw coordinatorError }
+        if let thrown = thrown { throw thrown }
     }
 
     private func getContentSaveURL() -> URL {

@@ -151,6 +151,10 @@ extension EditorViewController {
     }
 
     @objc func dividerPressed() {
+        if nativeHost.isActive {
+            nativeHost.adapter?.insertText("\n---\n")
+            return
+        }
         editArea.insertText("\n---\n")
     }
 
@@ -244,6 +248,10 @@ extension EditorViewController {
     /// current paragraph, returning it to plain body text. Routed through
     /// `UITextView.replace(_:withText:)` so the change participates in undo.
     @objc func bodyPressed() {
+        if nativeHost.isActive {
+            nativeHost.adapter?.setHeading(nil)
+            return
+        }
         let storage = editArea.textStorage
         let pRange = storage.mutableString.paragraphRange(for: editArea.selectedRange)
         let paragraph = storage.mutableString.substring(with: pRange)

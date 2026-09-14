@@ -5,3 +5,7 @@ Podfile.lock
 FSNotes.xcworkspace/xcshareddata/*
 FSNotes.xcworkspace/xcuserdata/*
 FSNotes.xcodeproj/xcuserdata/*
+
+# Swift Package Manager build products
+Packages/MarkdownEditor/.build/
+Packages/MarkdownEditor/.swiftpm/

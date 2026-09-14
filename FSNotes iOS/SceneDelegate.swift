@@ -90,6 +90,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
     func sceneDidEnterBackground(_ scene: UIScene) {
         // Called as the scene transitions from the foreground to the background.
         saveEditorState()
+        Storage.shared().flushAllPendingSaves()
     }
 
     // MARK: - Shortcut Actions

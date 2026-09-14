@@ -56,6 +56,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
         applyAppearance()
 
+        // Flush any debounced autosaves before we lose foreground activity so
+        // nothing is left sitting in the ~0.6s window.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(flushPendingSaves),
+            name: NSApplication.willResignActiveNotification,
+            object: nil
+        )
+
         #if CLOUD_RELATED_BLOCK
         if let iCloudDocumentsURL = FileManager.default.url(forUbiquityContainerIdentifier: nil)?.appendingPathComponent("Documents").standardized {
             
@@ -92,11 +101,17 @@ class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         return true
     }
 
+    @objc func flushPendingSaves() {
+        Storage.shared().flushAllPendingSaves()
+    }
+
     func applicationWillTerminate(_ notification: Notification) {
         UserDefaultsManagement.crashedLastTime = false
-        
+
+        Storage.shared().flushAllPendingSaves()
+
         AppDelegate.saveWindowsState()
-        
+
         Storage.shared().saveUploadPaths()
         
         let webkitPreview = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("wkPreview")

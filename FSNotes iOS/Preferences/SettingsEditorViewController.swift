@@ -19,7 +19,7 @@ class SettingsEditorViewController: UITableViewController {
         NSLocalizedString("Code", comment: "")
     ]
 
-    private var rowsInSection = [2, 2, 1, 3, 2]
+    private var rowsInSection = [2, 3, 1, 3, 2]
 
     private var counter = UILabel(frame: CGRect(x: 0, y: 0, width: 20, height: 20))
     
@@ -31,6 +31,7 @@ class SettingsEditorViewController: UITableViewController {
         [
             NSLocalizedString("Code Block Live Highlighting", comment: "Settings"),
             NSLocalizedString("MathJax", comment: "Settings"),
+            NSLocalizedString("Native Markdown Editor (Beta)", comment: "Settings"),
         ],
         [""],
         [
@@ -117,6 +118,9 @@ class SettingsEditorViewController: UITableViewController {
             case 1:
                 cell.accessoryView = uiSwitch
                 uiSwitch.isOn = UserDefaultsManagement.mathJaxPreview
+            case 2:
+                cell.accessoryView = uiSwitch
+                uiSwitch.isOn = UserDefaultsManagement.useNativeMarkdownEditor
             default:
                 return cell
             }
@@ -231,6 +235,10 @@ class SettingsEditorViewController: UITableViewController {
             case 1:
                 guard let uiSwitch = cell.accessoryView as? UISwitch else { return }
                 UserDefaultsManagement.mathJaxPreview = uiSwitch.isOn
+            case 2:
+                guard let uiSwitch = cell.accessoryView as? UISwitch else { return }
+                UserDefaultsManagement.useNativeMarkdownEditor = uiSwitch.isOn
+                NotificationCenter.default.post(name: .fsnotesNativeEditorPreferenceDidChange, object: nil)
             default:
                 return
             }

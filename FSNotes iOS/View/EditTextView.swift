@@ -44,9 +44,15 @@ class EditTextView: UITextView, UITextViewDelegate {
         spellCheckingType = UserDefaultsManagement.editorSpellChecking ? .yes : .no
     }
 
+    // Return the current note's own undo manager instead of a single shared
+    // one, so switching notes doesn't bleed undo history between them.
+    override var undoManager: UndoManager? {
+        return note?.undoManager ?? super.undoManager
+    }
+
     override func becomeFirstResponder() -> Bool {
         textStorage.removeHighlight()
-        
+
         return super.becomeFirstResponder()
     }
     

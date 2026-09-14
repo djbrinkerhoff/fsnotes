@@ -8,6 +8,7 @@
 
 import Foundation
 import UIKit
+import MarkdownEditorCore
 
 class CloudDriveManager {
 
@@ -194,18 +195,37 @@ class CloudDriveManager {
                             ? modificationDate
                             : contentChangeDate
 
-                    if prepareDate > note.modifiedLocalAt {
-                        note.modifiedLocalAt = prepareDate
+                    // A change whose on-disk content hash matches what we
+                    // ourselves last wrote is our own save reflected back by
+                    // iCloud, not a real external edit – just resync the
+                    // timestamp and move on.
+                    if let contentURL = note.getContentFileURL(),
+                       let onDiskData = try? Data(contentsOf: contentURL),
+                       let lastHash = note.lastSavedContentHash,
+                       onDiskData.hashValue == lastHash {
+
+                        if prepareDate > note.modifiedLocalAt {
+                            note.modifiedLocalAt = prepareDate
+                        }
+
+                    } else if note.isDirty || note.hasPendingSave {
+                        // Don't clobber unsaved / not-yet-flushed edits – fork
+                        // a conflict copy instead of overwriting the buffer.
+                        handleConflict(note: note, modificationDate: prepareDate)
+
+                    } else {
+                        if prepareDate > note.modifiedLocalAt {
+                            note.modifiedLocalAt = prepareDate
+                        }
+
+                        // Trying load content from encrypted note with current password
+                        if url.pathExtension == "etp", let password = note.password {
+                            _ = note.unLock(password: password)
+                        }
+
+                        note.forceLoad()
+                        delegate.refreshTextStorage(note: note)
                     }
-
-
-                    // Trying load content from encrypted note with current password
-                    if url.pathExtension == "etp", let password = note.password {
-                        _ = note.unLock(password: password)
-                    }
-
-                    note.forceLoad()
-                    delegate.refreshTextStorage(note: note)
                 }
 
                 // print("File changed: \(url)")
@@ -218,7 +238,7 @@ class CloudDriveManager {
                 }
 
                 notesModificationQueue.append(note)
-                //resolveConflict(url: url)
+                resolveConflict(url: url)
 
                 continue
             }
@@ -433,6 +453,48 @@ class CloudDriveManager {
                 }
             }
         }
+    }
+
+    /// An external (iCloud) change landed on a note we still have unsaved
+    /// (or not-yet-flushed) edits for. Rather than silently overwrite either
+    /// side, write our in-memory version out to a sibling "(CONFLICT ...)"
+    /// file, register it as a new note, then reload the on-disk version into
+    /// the original note and mark it clean.
+    private func handleConflict(note: Note, modificationDate: Date) {
+        note.discardPendingSave()
+
+        let ext = note.url.pathExtension
+        let name = note.url.deletingPathExtension().lastPathComponent
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH.mm.ss"
+        let dateString = dateFormatter.string(from: Date())
+
+        let conflictName = "\(name) (CONFLICT \(dateString)).\(ext)"
+        let conflictURL = note.url.deletingLastPathComponent().appendingPathComponent(conflictName)
+
+        let conflictSource = note.content.string
+        let conflictData = MarkdownFileCodec().encode(conflictSource, hasBOM: note.sourceHasBOM)
+
+        do {
+            try conflictData.write(to: conflictURL, options: .atomic)
+
+            if let conflictNote = storage.importNote(url: conflictURL) {
+                notesInsertionQueue.append(conflictNote)
+            }
+        } catch {
+            print("Conflict write error: \(error)")
+        }
+
+        // Reload the on-disk version into the original note and mark clean.
+        note.forceLoad()
+        delegate.refreshTextStorage(note: note)
+
+        NotificationCenter.default.post(
+            name: .fsnotesNoteConflictDetected,
+            object: note,
+            userInfo: ["conflictURL": conflictURL]
+        )
     }
 
     public func resolveConflict(url: URL) {

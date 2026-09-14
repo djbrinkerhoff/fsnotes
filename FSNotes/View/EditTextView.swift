@@ -770,7 +770,7 @@ class EditTextView: NSTextView, NSTextFinderClient, NSSharingServicePickerDelega
 
     func fill(note: Note, highlight: Bool = false, force: Bool = false) {
         isScrollPositionSaverLocked = true
-        
+
         if !note.isLoaded {
             note.load()
         }
@@ -786,6 +786,10 @@ class EditTextView: NSTextView, NSTextFinderClient, NSSharingServicePickerDelega
             invalidateLayout()
         }
 
+        // Install the new note's undo manager BEFORE clearing actions so we
+        // don't wipe out the outgoing note's undo stack (it keeps its own
+        // manager and history intact for when it's reopened).
+        editorViewController?.editorUndoManager = note.undoManager
         undoManager?.removeAllActions(withTarget: self)
         registerHandoff(note: note)
 
@@ -819,19 +823,27 @@ class EditTextView: NSTextView, NSTextFinderClient, NSSharingServicePickerDelega
         viewDelegate?.updateOverview()
 
         isEditable = isEditable(note: note)
-        
-        editorViewController?.editorUndoManager = note.undoManager
 
         typingAttributes.removeAll()
         typingAttributes[.font] = UserDefaultsManagement.noteFont
 
         if isPreviewEnabled() {
+            editorViewController?.nativeHost.hide()
             loadMarkdownWebView(note: note, force: force)
             return
         }
 
         markdownView?.removeFromSuperview()
         markdownView = nil
+
+        if let evc = editorViewController, let legacyScroll = evc.vcEditorScrollView {
+            if NativeEditorHost.isEnabled, evc.nativeHost.show(note: note, legacy: legacyScroll) {
+                textStorage?.setAttributedString(NSAttributedString())
+                evc.nativeHost.makeFirstResponder()
+                return
+            }
+            evc.nativeHost.hide()
+        }
 
         guard let storage = textStorage else { return }
 
@@ -882,6 +894,7 @@ class EditTextView: NSTextView, NSTextFinderClient, NSSharingServicePickerDelega
     }
 
     public func lockEncryptedView() {
+        editorViewController?.nativeHost.hide()
         textStorage?.setAttributedString(NSAttributedString())
         markdownView?.removeFromSuperview()
         markdownView = nil
@@ -895,6 +908,7 @@ class EditTextView: NSTextView, NSTextFinderClient, NSSharingServicePickerDelega
     }
     
     public func clear() {
+        editorViewController?.nativeHost.hide()
         textStorage?.setAttributedString(NSAttributedString())
         markdownView?.removeFromSuperview()
         markdownView = nil
