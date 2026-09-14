@@ -41,6 +41,19 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
         super.init(textElement: textElement, range: range)
     }
 
+    /// Extends the drawable area leftwards so margin decorations are never clipped.
+    public override var renderingSurfaceBounds: CGRect {
+        var bounds = super.renderingSurfaceBounds
+        return MainActor.assumeIsolated {
+            guard let theme = themeProvider?.currentTheme, let decoration = blockDecoration(),
+                  decoration.marker != nil || !decoration.quoteBarXs.isEmpty || decoration.isCodeBlock else { return bounds }
+            let extension_ = max(0, originShift(decoration: decoration, theme: theme)) + theme.codeBlockPadding + 4
+            bounds.origin.x -= extension_
+            bounds.size.width += extension_ + theme.codeBlockPadding
+            return bounds
+        }
+    }
+
     public override func draw(at point: CGPoint, in context: CGContext) {
         // `draw(at:in:)` is nonisolated (it overrides an AppKit method that isn't main-actor
         // annotated), but TextKit only ever draws on the main thread, so it's safe to assume
@@ -112,6 +125,17 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
         return decoration.isCodeBlock
     }
 
+    /// Shift between the text-container coordinate space the decoration was computed in and this
+    /// fragment's local space (non-zero when the fragment origin already includes the head indent).
+    private func originShift(decoration: BlockDecoration, theme: ResolvedTheme) -> CGFloat {
+        let expectedIndent = CGFloat(decoration.quoteDepth) * theme.quoteIndentWidth
+            + CGFloat(decoration.listDepth) * theme.listIndentWidth
+            + (decoration.isCodeBlock ? theme.codeBlockPadding : 0)
+        guard let actual = textLineFragments.first?.typographicBounds.minX else { return 0 }
+        let shift = expectedIndent - actual
+        return abs(shift) < 0.5 ? 0 : shift
+    }
+
     // MARK: - Drawing
 
     private func drawDecoration(_ decoration: BlockDecoration, theme: ResolvedTheme, point: CGPoint, context: CGContext) {
@@ -124,7 +148,7 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
             drawCodeBackground(decoration, theme: theme, point: point, height: height, context: context)
         }
         for x in decoration.quoteBarXs {
-            drawQuoteBar(x: x, theme: theme, point: point, height: height, context: context)
+            drawQuoteBar(x: x - originShift(decoration: decoration, theme: theme), theme: theme, point: point, height: height, context: context)
         }
         if let marker = decoration.marker, let firstLine = textLineFragments.first {
             drawMarker(marker, decoration: decoration, theme: theme, point: point, firstLine: firstLine, context: context)
@@ -136,9 +160,9 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
 
     private func drawCodeBackground(_ decoration: BlockDecoration, theme: ResolvedTheme, point: CGPoint, height: CGFloat, context: CGContext) {
         let indent = CGFloat(decoration.quoteDepth) * theme.quoteIndentWidth + CGFloat(decoration.listDepth) * theme.listIndentWidth
-        let leading = max(0, indent - theme.codeBlockPadding)
+        let leading = max(0, indent - theme.codeBlockPadding) - originShift(decoration: decoration, theme: theme)
         let x = point.x + leading
-        let width = max(0, containerWidth - leading)
+        let width = max(0, containerWidth - max(0, leading))
         let rect = CGRect(x: x, y: point.y, width: width, height: height)
         let topRadius: CGFloat = isPreviousParagraphCodeBlock() ? 0 : theme.theme.codeCornerRadius
         let bottomRadius: CGFloat = isNextParagraphCodeBlock() ? 0 : theme.theme.codeCornerRadius
@@ -169,7 +193,8 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
     /// The marker's bounding box, in fragment-local coordinates, aligned to the first line fragment.
     private func markerBox(decoration: BlockDecoration, firstLine: NSTextLineFragment) -> CGRect {
         let lineRect = firstLine.typographicBounds
-        return CGRect(x: decoration.markerX, y: lineRect.minY, width: decoration.markerWidth, height: lineRect.height)
+        let shift = MainActor.assumeIsolated { themeProvider.map { originShift(decoration: decoration, theme: $0.currentTheme) } ?? 0 }
+        return CGRect(x: decoration.markerX - shift, y: lineRect.minY, width: decoration.markerWidth, height: lineRect.height)
     }
 
     private func checkboxFrame(decoration: BlockDecoration, theme: ResolvedTheme, firstLine: NSTextLineFragment) -> CGRect {

@@ -33,9 +33,17 @@ public final class MarkdownTextView: UITextView {
     public init(frame: CGRect, theme: ResolvedTheme) {
         self.theme = theme
         self.layoutManagerDelegate = MarkdownTextLayoutManagerDelegate(theme: theme)
-        super.init(usingTextLayoutManager: true)
-        self.frame = frame
-        textLayoutManager?.delegate = layoutManagerDelegate
+        // Build the TextKit 2 stack explicitly; `init(usingTextLayoutManager:)` is a convenience
+        // initializer that cannot be chained from a subclass.
+        let contentStorage = NSTextContentStorage()
+        let textLayoutManager = NSTextLayoutManager()
+        contentStorage.addTextLayoutManager(textLayoutManager)
+        let container = NSTextContainer(size: CGSize(width: max(frame.width, 1), height: CGFloat.greatestFiniteMagnitude))
+        container.widthTracksTextView = true
+        textLayoutManager.textContainer = container
+        super.init(frame: frame, textContainer: container)
+        precondition(self.textLayoutManager != nil, "MarkdownTextView requires TextKit 2")
+        self.textLayoutManager?.delegate = layoutManagerDelegate
         configureAppearance()
         setupTapRecognizer()
         addSubview(checkboxAccessibilityOverlay)

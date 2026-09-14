@@ -165,7 +165,10 @@ extension EditorViewController {
         button.setTitle(NSLocalizedString("Aa", comment: ""), for: .normal)
         button.titleLabel?.font = .systemFont(ofSize: 17, weight: .semibold)
         button.setTitleColor(.label, for: .normal)
-        button.menu = makeTextStyleMenu()
+        // Rebuilt on every presentation so the menu reflects the active editor and its source-mode state.
+        button.menu = UIMenu(children: [UIDeferredMenuElement.uncached { [weak self] completion in
+            completion(self.map { [$0.makeTextStyleMenu()] } ?? [])
+        }])
         button.showsMenuAsPrimaryAction = true
         button.frame = CGRect(x: 0, y: 0, width: Self.toolbarButtonSide, height: Self.toolbarButtonSide)
         button.accessibilityLabel = NSLocalizedString("Text style", comment: "")
@@ -197,6 +200,14 @@ extension EditorViewController {
             title: NSLocalizedString("Code block", comment: ""),
             image: UIImage(systemName: "curlybraces")
         ) { [weak self] _ in self?.codeBlockButton() })
+
+        if nativeHost.isActive {
+            textActions.append(UIAction(
+                title: NSLocalizedString("Markdown Source", comment: ""),
+                image: UIImage(systemName: "chevron.left.forwardslash.chevron.right"),
+                state: nativeHost.isSourceMode ? .on : .off
+            ) { [weak self] _ in self?.nativeHost.toggleSourceMode() })
+        }
 
         let textMenu = UIMenu(
             title: NSLocalizedString("Text", comment: ""),

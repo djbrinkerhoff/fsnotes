@@ -57,6 +57,7 @@ final class NativeEditorHost {
     @discardableResult
     func show(note: Note, legacy: UITextView) -> Bool {
         guard note.isMarkdown(), note.container != .encryptedTextPack || note.isUnlocked(), let source = note.loadSource() else {
+            NSLog("NativeEditorHost: cannot show %@ natively (markdown=%d, container=%d)", note.url.lastPathComponent, note.isMarkdown() ? 1 : 0, note.container.rawValue)
             hide()
             return false
         }

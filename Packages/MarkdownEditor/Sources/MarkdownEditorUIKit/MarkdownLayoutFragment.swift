@@ -20,7 +20,35 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
         return paragraph.attributedString.attribute(EditorAttributeKey.blockDecoration, at: 0, effectiveRange: nil) as? BlockDecoration
     }
 
+    /// Horizontal shift between the coordinate space the decoration was computed in (text container,
+    /// x = 0 at the container's leading edge) and this fragment's local space. On iOS the fragment
+    /// origin already includes the paragraph head indent, so absolute decoration x values must be shifted.
+    private func originShift(decoration: BlockDecoration, theme: ResolvedTheme) -> CGFloat {
+        let expectedIndent = CGFloat(decoration.quoteDepth) * theme.quoteIndentWidth
+            + CGFloat(decoration.listDepth) * theme.listIndentWidth
+            + (decoration.isCodeBlock ? theme.codeBlockPadding : 0)
+        guard let actual = textLineFragments.first?.typographicBounds.minX else { return 0 }
+        let shift = expectedIndent - actual
+        return abs(shift) < 0.5 ? 0 : shift
+    }
+
+    private func localX(_ x: CGFloat, decoration: BlockDecoration, theme: ResolvedTheme) -> CGFloat {
+        x - originShift(decoration: decoration, theme: theme)
+    }
+
     private var decoration: BlockDecoration? { blockDecoration }
+
+    /// Extends the drawable area leftwards so margin decorations (bullets, checkboxes, quote bars)
+    /// are not clipped by the per-fragment rendering surface.
+    public override var renderingSurfaceBounds: CGRect {
+        var bounds = super.renderingSurfaceBounds
+        guard let theme, let decoration, decoration.marker != nil || !decoration.quoteBarXs.isEmpty || decoration.isCodeBlock else { return bounds }
+        let shift = originShift(decoration: decoration, theme: theme)
+        let extension_ = max(0, shift) + theme.codeBlockPadding + 4
+        bounds.origin.x -= extension_
+        bounds.size.width += extension_ + theme.codeBlockPadding
+        return bounds
+    }
 
     public override func draw(at point: CGPoint, in context: CGContext) {
         guard let theme, let decoration else {
@@ -57,8 +85,9 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
     // MARK: Code block background
 
     private func drawCodeBackground(decoration: BlockDecoration, theme: ResolvedTheme, bounds: CGRect, in context: CGContext) {
-        let x0 = (decoration.quoteBarXs.last ?? 0) + theme.quoteIndentWidth
-        let x1 = bounds.width - theme.codeBlockPadding
+        let shift = originShift(decoration: decoration, theme: theme)
+        let x0 = (decoration.quoteBarXs.last.map { $0 + theme.quoteIndentWidth } ?? 0) - shift
+        let x1 = bounds.width - theme.codeBlockPadding - shift
         guard x1 > x0 else { return }
         let rect = CGRect(x: x0, y: 0, width: x1 - x0, height: bounds.height)
         // NOTE (spec deviation): detecting whether the previous/next paragraph is also a code
@@ -80,7 +109,7 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
         let width = theme.theme.quoteRuleWidth
         context.setFillColor(theme.palette.color(.quoteRule).cgColor)
         for x in decoration.quoteBarXs {
-            let rect = CGRect(x: x, y: 0, width: width, height: bounds.height)
+            let rect = CGRect(x: localX(x, decoration: decoration, theme: theme), y: 0, width: width, height: bounds.height)
             let path = UIBezierPath(roundedRect: rect, cornerRadius: width / 2)
             context.addPath(path.cgPath)
             context.fillPath()
@@ -99,7 +128,7 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
         guard let theme, let decoration, case .checkbox = decoration.marker, let line = firstLineRect() else { return nil }
         let size = theme.checkboxSize
         let y = line.midY - size / 2
-        let x = decoration.markerX + max(0, decoration.markerWidth - size)
+        let x = localX(decoration.markerX, decoration: decoration, theme: theme) + max(0, decoration.markerWidth - size)
         return CGRect(x: x, y: y, width: size, height: size)
     }
 
@@ -108,7 +137,7 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
         switch marker {
         case .bullet:
             let diameter = theme.bodySize * 0.3
-            let rect = CGRect(x: decoration.markerX + max(0, decoration.markerWidth - diameter), y: line.midY - diameter / 2, width: diameter, height: diameter)
+            let rect = CGRect(x: localX(decoration.markerX, decoration: decoration, theme: theme) + max(0, decoration.markerWidth - diameter), y: line.midY - diameter / 2, width: diameter, height: diameter)
             context.setFillColor(theme.palette.color(.listMarker).cgColor)
             context.fillEllipse(in: rect)
 
@@ -122,7 +151,7 @@ public final class MarkdownLayoutFragment: NSTextLayoutFragment {
                 .paragraphStyle: paragraphStyle,
             ]
             let size = text.size(withAttributes: attrs)
-            let rect = CGRect(x: decoration.markerX, y: line.midY - size.height / 2, width: decoration.markerWidth, height: size.height)
+            let rect = CGRect(x: localX(decoration.markerX, decoration: decoration, theme: theme), y: line.midY - size.height / 2, width: decoration.markerWidth, height: size.height)
             UIGraphicsPushContext(context)
             text.draw(in: rect, withAttributes: attrs)
             UIGraphicsPopContext()
